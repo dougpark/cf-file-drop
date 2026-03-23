@@ -11,8 +11,30 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		return new Response('Hello World!');
-	},
-} satisfies ExportedHandler<Env>;
+import { Hono } from 'hono'
+
+// This tells Hono about your Cloudflare "Bindings"
+type Bindings = {
+	BUCKET: R2Bucket
+	DB: D1Database
+}
+
+const app = new Hono<{ Bindings: Bindings }>()
+
+// The Upload Endpoint (for your iPhone/macOS)
+app.post('/upload', async (c) => {
+	return c.json({ message: 'Ready for upload logic!' })
+})
+
+// The Download/Share Endpoint
+app.get('/f/:slug', async (c) => {
+	const slug = c.req.param('slug')
+	return c.text(`Looking for file with slug: ${slug}`)
+})
+
+// The Download/Share Endpoint
+app.get('/', async (c) => {
+	return c.text(`Hello from Cloudflare Workers!`)
+})
+
+export default app
