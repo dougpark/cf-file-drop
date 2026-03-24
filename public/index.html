@@ -132,6 +132,11 @@
 
   <div id="status" style="margin-top: 20px; text-align: center; min-height: 1.5em;"></div>
 
+  <div style="margin-bottom: 20px;">
+    <input type="password" id="adminPassword" placeholder="Admin Password"
+      style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white;">
+  </div>
+
   <h2 style="margin-top: 40px;">Recent Drops</h2>
   <ul id="recent-list">
     <li>Loading history...</li>
@@ -166,9 +171,16 @@
 
     // 2. Upload Logic
     async function uploadFile(file) {
+      const password = document.getElementById('adminPassword').value;
+      if (!password) {
+        alert('Please enter the Admin Password first.');
+        return;
+      }
+
       status.innerText = `Uploading ${file.name}...`;
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('password', password); // Send the password with the file
 
       try {
         const res = await fetch('/upload', { method: 'POST', body: formData });

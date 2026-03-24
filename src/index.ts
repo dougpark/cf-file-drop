@@ -13,13 +13,15 @@
 
 import { Hono } from 'hono'
 
-import uploadHtml from '../public/upload2.html'
+// import uploadHtml from '../public/upload2.html'
+const uploadHtml = ``;
 
 // This tells Hono about your Cloudflare "Bindings"
 type Bindings = {
 	ASSETS: any;
 	DB: D1Database;
 	BUCKET: R2Bucket;
+	UPLOAD_PASSWORD: string;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -29,6 +31,12 @@ app.post('/upload', async (c) => {
 
 	const body = await c.req.parseBody();
 	const file = body['file'] as File;
+	const password = body['password'] as string; // Look for the password
+
+	// Check the password against the secret we set
+	if (password !== c.env.UPLOAD_PASSWORD) {
+		return c.json({ success: false, error: 'Unauthorized: Invalid Admin Password' }, 401);
+	}
 
 	if (!file) return c.text('No file uploaded', 400);
 
@@ -62,57 +70,67 @@ app.post('/upload', async (c) => {
 
 	return c.json({
 		success: true,
-		// share_url: `https://d11cloud.com/f/${slug}`,
-		share_url: `http://localhost:8787/f/${slug}`,
+		share_url: `https://drop.d11cloud.com/f/${slug}`,
+		// share_url: `http://localhost:8787/f/${slug}`,
 		message: existing ? 'Deduplicated (Shared existing storage)' : 'New file uploaded'
 	});
 });
 
 
 // The Download/Share Endpoint
+// 1. The Public Landing Page
 app.get('/f/:slug', async (c) => {
 	const slug = c.req.param('slug');
+	const MAX_DOWNLOADS = 3; // Your "Reasonable" limit
 
-	// 1. Fetch metadata from D1
 	const file = await c.env.DB.prepare(
-		"SELECT * FROM file_log WHERE slug = ? AND (deleted_at IS NULL)"
+		"SELECT original_filename, file_size_bytes, download_count FROM file_log WHERE slug = ? AND deleted_at IS NULL"
 	).bind(slug).first();
 
-	if (!file) return c.text('File not found', 404);
+	if (!file) return c.text('File not found.', 404);
 
-	// 2. Check Expiration
-	if (file.expires_at && Date.now() / 1000 > (file.expires_at as number)) {
-		return c.text('This link has expired.', 410);
+	// Check if they've hit the limit
+	const remaining = MAX_DOWNLOADS - (file.download_count as number);
+
+	if (remaining <= 0) {
+		return c.html(`
+      <body style="background:#111;color:white;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;">
+        <div style="text-align:center;border:1px solid #444;padding:40px;border-radius:20px;">
+          <div style="font-size:3em;">🚫</div>
+          <h2>Link Expired</h2>
+          <p style="color:#888;">This file reached its maximum download limit.</p>
+        </div>
+      </body>
+    `);
 	}
 
-	// 3. Check Single-Use
-	if (file.is_single_use && (file.download_count as number) > 0) {
-		return c.text('This was a single-use link and has already been claimed.', 410);
-	}
+	return c.html(`
+    <div class="card">
+      <h2>${file.original_filename}</h2>
+      <div class="meta">${(Number(file.file_size_bytes) / 1024 / 1024).toFixed(2)} MB</div>
+      <a href="/f/${slug}/raw" class="btn">Download File</a>
+      <div style="margin-top:15px; font-size:0.8em; color:#666;">
+        Remaining downloads: ${remaining} of ${MAX_DOWNLOADS}
+      </div>
+    </div>
+  `);
+});
 
-	// 4. Handle Private PIN (if set)
-	const userPin = c.req.query('pin');
-	if (file.password_hash && file.password_hash !== userPin) {
-		// In a real app, you'd return an HTML form here. For now, a simple check:
-		return c.text('This file is private. Please append ?pin=YOUR_PIN to the URL.', 401);
-	}
+// 2. The Actual Download Stream
+app.get('/f/:slug/raw', async (c) => {
+	const slug = c.req.param('slug');
+	const file = await c.env.DB.prepare(
+		"SELECT r2_key, original_filename FROM file_log WHERE slug = ?"
+	).bind(slug).first();
 
-	// 5. Update Metrics (Download Count & Last Downloaded)
-	await c.env.DB.prepare(
-		"UPDATE file_log SET download_count = download_count + 1, last_downloaded_at = ? WHERE slug = ?"
-	).bind(Math.floor(Date.now() / 1000), slug).run();
+	if (!file) return c.text('Not found', 404);
 
-	// 6. Get the file from R2 and serve it
 	const object = await c.env.BUCKET.get(file.r2_key as string);
+	if (!object) return c.text('File missing', 404);
 
-	if (!object) return c.text('File missing from storage', 404);
-
-	// Set headers so the browser knows it's a file download
 	const headers = new Headers();
 	object.writeHttpMetadata(headers);
 	headers.set('Content-Disposition', `attachment; filename="${file.original_filename}"`);
-	headers.set('etag', object.httpEtag);
-
 	return new Response(object.body, { headers });
 });
 
