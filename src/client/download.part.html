@@ -1,0 +1,35 @@
+<!-- download.part.html  -->
+
+
+<script>
+    // 1. When the user clicks the button, wait a moment then refresh
+    // This handles the "immediate" update after the download starts
+    function handleDownload() {
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000); // 2 second delay gives the Worker time to increment D1
+    }
+
+    // 2. When the user switches back to this tab, refresh
+    // This is the "Magic" fix for mobile and Mac multitasking
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            window.location.reload();
+        }
+    });
+</script>
+
+<body>
+    <h1>File Drop</h1>
+
+    <div class="card">
+        <h3>{{original_filename}}</h3>
+        <div class="meta">{{file_size}}</div>
+        <br>
+        <a class="btn copy-btn" href="/f/{{slug}}/raw" class="btn" onclick="handleDownload()">Download File</a>
+        <div style="margin-top:15px; font-size:0.8em; color:#666;">
+            Remaining downloads: {{remaining}} of {{MAX_DOWNLOADS}}
+        </div>
+    </div>
+
+</body>

@@ -12,8 +12,16 @@
  */
 
 import { Hono } from 'hono'
+// @ts-ignore
+import sharedHead from './client/head.part.html'
+// @ts-ignore
+import sharedStyle from './client/style.part.css'
+// @ts-ignore
+import maxDownload from './client/maxdownload.part.html'
+// @ts-ignore
+import download from './client/download.part.html'
 
-// import uploadHtml from '../public/upload2.html'
+// import uploadHtml from './client/upload2.html'
 const uploadHtml = ``;
 
 // This tells Hono about your Cloudflare "Bindings"
@@ -84,36 +92,54 @@ app.get('/f/:slug', async (c) => {
 	const MAX_DOWNLOADS = 3; // Your "Reasonable" limit
 
 	const file = await c.env.DB.prepare(
-		"SELECT original_filename, file_size_bytes, download_count FROM file_log WHERE slug = ? AND deleted_at IS NULL"
+		"SELECT original_filename, file_size_bytes, download_count,\
+		expires_at, is_single_use, password_hash FROM file_log WHERE slug = ? AND deleted_at IS NULL"
 	).bind(slug).first();
 
 	if (!file) return c.text('File not found.', 404);
+
+	// 2. Check Expiration
+	if (file.expires_at && Date.now() / 1000 > (file.expires_at as number)) {
+		return c.text('This link has expired.', 410);
+	}
+
+	// 3. Check Single-Use
+	if (file.is_single_use && (file.download_count as number) > 0) {
+		return c.text('This was a single-use link and has already been claimed.', 410);
+	}
+
+	// 4. Handle Private PIN (if set)
+	const userPin = c.req.query('pin');
+	if (file.password_hash && file.password_hash !== userPin) {
+		// In a real app, you'd return an HTML form here. For now, a simple check:
+		return c.text('This file is private. Please append ?pin=YOUR_PIN to the URL.', 401);
+	}
 
 	// Check if they've hit the limit
 	const remaining = MAX_DOWNLOADS - (file.download_count as number);
 
 	if (remaining <= 0) {
-		return c.html(`
-      <body style="background:#111;color:white;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;">
-        <div style="text-align:center;border:1px solid #444;padding:40px;border-radius:20px;">
-          <div style="font-size:3em;">🚫</div>
-          <h2>Link Expired</h2>
-          <p style="color:#888;">This file reached its maximum download limit.</p>
-        </div>
-      </body>
-    `);
+		// build the max download page from parts
+		const html =
+			sharedHead
+				.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+			maxDownload
+				.replace('{{original_filename}}', `${file.original_filename}`);
+		return c.html(html);
 	}
 
-	return c.html(`
-    <div class="card">
-      <h2>${file.original_filename}</h2>
-      <div class="meta">${(Number(file.file_size_bytes) / 1024 / 1024).toFixed(2)} MB</div>
-      <a href="/f/${slug}/raw" class="btn">Download File</a>
-      <div style="margin-top:15px; font-size:0.8em; color:#666;">
-        Remaining downloads: ${remaining} of ${MAX_DOWNLOADS}
-      </div>
-    </div>
-  `);
+	// If all checks pass, show the download page with the correct info filled in
+	// build the download page from parts
+	const html =
+		sharedHead
+			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+		download
+			.replace('{{original_filename}}', `${file.original_filename}`)
+			.replace('{{file_size}}', `${(Number(file.file_size_bytes) / 1024 / 1024).toFixed(2)} MB`)
+			.replace('{{slug}}', slug)
+			.replace('{{remaining}}', remaining.toString())
+			.replace('{{MAX_DOWNLOADS}}', MAX_DOWNLOADS.toString());
+	return c.html(html);
 });
 
 // 2. The Actual Download Stream
@@ -127,6 +153,13 @@ app.get('/f/:slug/raw', async (c) => {
 
 	const object = await c.env.BUCKET.get(file.r2_key as string);
 	if (!object) return c.text('File missing', 404);
+
+
+
+	// 5. Update Metrics (Download Count & Last Downloaded)
+	await c.env.DB.prepare(
+		"UPDATE file_log SET download_count = download_count + 1, last_downloaded_at = ? WHERE slug = ?"
+	).bind(Math.floor(Date.now() / 1000), slug).run();
 
 	const headers = new Headers();
 	object.writeHttpMetadata(headers);

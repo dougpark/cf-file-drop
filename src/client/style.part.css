@@ -1,0 +1,122 @@
+/* style.part.css */
+
+body {
+      font-family: system-ui;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      min-height: 100vh;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    .card {
+      text-align: center;
+      border: 1px solid #444;
+      padding: 40px;
+      border-radius: 20px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #444;
+      padding: 40px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.3s;
+      background: #1a1a1a;
+    }
+
+    /* Visual feedback for Safari Drag & Drop */
+    .drop-zone.dragover {
+      border-color: #007AFF;
+      background: #222;
+      transform: scale(1.02);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    #recent-list {
+      list-style: none;
+      padding: 0;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .file-item {
+      background: #222;
+      margin-bottom: 10px;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #333;
+    }
+
+    .file-item {
+      background: #222;
+      margin-bottom: 10px;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .copy-btn {
+      background: #007AFF;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8em;
+    }
+
+    .copy-btn.success {
+      background: #34C759;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+      /* Space between Copy and Download */
+    }
+
+    .btn {
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8em;
+      transition: background 0.2s;
+      text-decoration: none;
+      /* For the <a> tag download button */
+      display: inline-block;
+    }
+
+    .copy-btn {
+      background: #007AFF;
+      color: white;
+    }
+
+    .copy-btn.success {
+      background: #34C759;
+    }
+
+    .download-btn {
+      background: #333;
+      color: white;
+      border: 1px solid #444;
+    }
+
+    .download-btn:hover {
+      background: #444;
+    }
+  
