@@ -13,8 +13,11 @@
 
 import { Hono } from 'hono'
 
+import uploadHtml from '../public/upload2.html'
+
 // This tells Hono about your Cloudflare "Bindings"
 type Bindings = {
+	ASSETS: any;
 	DB: D1Database;
 	BUCKET: R2Bucket;
 }
@@ -59,7 +62,8 @@ app.post('/upload', async (c) => {
 
 	return c.json({
 		success: true,
-		share_url: `https://d11cloud.com/f/${slug}`,
+		// share_url: `https://d11cloud.com/f/${slug}`,
+		share_url: `http://localhost:8787/f/${slug}`,
 		message: existing ? 'Deduplicated (Shared existing storage)' : 'New file uploaded'
 	});
 });
@@ -112,8 +116,33 @@ app.get('/f/:slug', async (c) => {
 	return new Response(object.body, { headers });
 });
 
+
+// Serve the PWA Manifest
+app.get('/manifest.json', (c) => {
+	return c.json(require('../public/manifest.json')) // Or just paste the JSON here
+})
+
+// Simple Upload UI (The "Dashboard")
+app.get('/up', (c) => {
+	return c.html(uploadHtml)
+})
+
+// list recent uploads (for demo purposes) - In a real app, you'd want pagination and better security around this!
+app.get('/api/recent', async (c) => {
+	// Query the last 5 non-deleted files
+	const { results } = await c.env.DB.prepare(`
+    SELECT slug, original_filename, uploaded_at, file_size_bytes 
+    FROM file_log 
+    WHERE deleted_at IS NULL 
+    ORDER BY uploaded_at DESC 
+    LIMIT 5
+  `).all();
+
+	return c.json(results);
+});
+
 // The Default Endpoint
-app.get('/', async (c) => {
+app.get('/hello', async (c) => {
 	return c.text(`Hello from Cloudflare Workers!`)
 })
 
