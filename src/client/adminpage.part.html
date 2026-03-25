@@ -1,33 +1,50 @@
 <!-- adminpage.part.html -->
 
 <body>
-    <h1>Admin Page - File Drop</h1>
 
-    <div style="display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto;">
+    <!-- Top Nav Bar -->
+    <div
+        style="position: sticky; top: 0; z-index: 100; background: #111; border-bottom: 1px solid #333; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.4em;">📂</span>
+            <span style="color: white; font-weight: 700; font-size: 1em; letter-spacing: 0.5px;">File Drop</span>
+        </div>
+        <span
+            style="font-size: 0.7em; padding: 3px 10px; border-radius: 12px; background: #1a2a4a; color: #64b5f6; font-weight: 600; letter-spacing: 0.5px;">ADMIN</span>
+    </div>
 
-    <div id="create-new-user"
-        style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
-        <span style="font-size: 1.1em; font-weight: bold; color: white;">New Access Token</span>
-        <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #333;">
-            <input type="text" id="newUserName" placeholder="User Name"
-                style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
-            <input type="email" id="newUserEmail" placeholder="User Email (optional)"
-                style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
-            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <label
-                    style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
-                    <input type="checkbox" id="newUserIsAdmin"> Admin
-                </label>
-                <button id="createTokenBtn"
-                    style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Create
-                    Token</button>
+    <!-- Page Header -->
+    <div style="padding: 24px 16px 8px 16px; max-width: 600px; margin: 0 auto;">
+        <h1 style="margin: 0 0 4px 0; font-size: 1.5em; color: white; font-weight: 700;">Access Tokens</h1>
+        <p style="margin: 0; color: #888; font-size: 0.85em;">Manage who can upload files and their permissions.</p>
+    </div>
+
+    <div
+        style="display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; padding: 12px 16px 32px 16px;">
+
+        <div id="create-new-user"
+            style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-size: 1.1em; font-weight: bold; color: white;">New Access Token</span>
+            <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #333;">
+                <input type="text" id="newUserName" placeholder="User Name"
+                    style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
+                <input type="email" id="newUserEmail" placeholder="User Email (optional)"
+                    style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <label
+                        style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
+                        <input type="checkbox" id="newUserIsAdmin"> Admin
+                    </label>
+                    <button id="createTokenBtn"
+                        style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Create
+                        Token</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div id="token-list">
-        Loading token list content...
-    </div>
+        <div id="token-list">
+            Loading token list content...
+        </div>
 
     </div><!-- end shared container -->
 
