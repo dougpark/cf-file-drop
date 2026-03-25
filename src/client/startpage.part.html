@@ -1,0 +1,33 @@
+<!-- startpage.part.html -->
+
+<body>
+    <h1>Start Page - File Drop</h1>
+
+    <div id="welcome">
+        <p>Welcome {{USER_NAME}} to the File Drop service! You have been assigned the following access token:</p>
+        <h2 style="color: #0070f3; font-size: 1.5em;">{{ACCESS_TOKEN}}</h2>
+        <p>Please keep this token safe, as it is required to upload files.
+            It will be stored in your browser's local storage for convenience, but you can also copy it to a secure
+            location.</p>
+        <p>To get started, click the "Upload" button below.
+            After uploading, you'll receive a unique link that you can share with others to download the file.</p>
+    </div>
+
+    <div id="upload-section" style="margin-top: 30px;">
+        <h2>Upload a File</h2>
+        <input type="file" id="fileInput"
+            style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white;">
+        <button id="uploadBtn"
+            style="padding: 10px 20px; border-radius: 8px; border: none; background: #0070f3; color: white;">Upload</button>
+
+
+</body>
+
+<script>
+    // Handle file upload
+    document.getElementById('uploadBtn').addEventListener('click', async () => {
+        window.location.href = '/newupload';
+    });
+</script>
+
+</html>

@@ -1,0 +1,137 @@
+<!-- newupload.part.html -->
+
+<body>
+  <h1>File Drop</h1>
+
+  <div id="dropZone" class="drop-zone">
+    Drag & Drop or Tap to Upload
+  </div>
+  <input type="file" id="fileInput">
+
+  <div id="status" style="margin-top: 20px; text-align: center; min-height: 1.5em;"></div>
+
+  <div style="margin-bottom: 20px;">
+    <input type="password" id="adminPassword" placeholder="Admin Password"
+      style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white;">
+  </div>
+
+  <h2 style="margin-top: 40px;">Recent Drops</h2>
+  <ul id="recent-list">
+    <li>Loading history...</li>
+  </ul>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const status = document.getElementById('status');
+    const list = document.getElementById('recent-list');
+
+    // 1. Fix Safari Drag & Drop
+    // We MUST preventDefault on dragover/dragenter or Safari will open the file
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      window.addEventListener(eventName, e => e.preventDefault(), false);
+      document.body.addEventListener(eventName, e => e.preventDefault(), false);
+    });
+
+    dropZone.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', (e) => {
+      dropZone.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length) uploadFile(files[0]);
+    });
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) uploadFile(fileInput.files[0]);
+    });
+
+    // 2. Upload Logic
+    async function uploadFile(file) {
+      const password = document.getElementById('adminPassword').value;
+      if (!password) {
+        alert('Please enter the Admin Password first.');
+        return;
+      }
+
+      status.innerText = `Uploading ${file.name}...`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('password', password); // Send the password with the file
+
+      try {
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          status.innerHTML = `✅ Uploaded! `;
+          loadRecent();
+        } else {
+          status.innerText = '❌ Upload failed: ' + (data.error || 'Unknown error');
+        }
+      } catch (err) {
+        status.innerText = '❌ Error connecting to server.';
+      }
+    }
+
+    // 3. Load Recent (Run on DOMContentLoaded)
+    async function loadRecent() {
+      try {
+        const res = await fetch('/api/recent');
+        const files = await res.json();
+
+        if (files.length === 0) {
+          list.innerHTML = '<li>No files uploaded yet.</li>';
+          return;
+        }
+
+        // Get the current origin (e.g., https://d11.me)
+        const origin = window.location.origin;
+
+        list.innerHTML = files.map(f => {
+          const fullUrl = `${origin}/f/${f.slug}`;
+          return `
+    <li class="file-item">
+      <div style="flex: 1; margin-right: 15px;">
+        <strong style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">
+          ${f.original_filename}
+        </strong>
+        <small style="color: #888;">${new Date(f.uploaded_at * 1000).toLocaleDateString()}</small>
+      </div>
+      <div class="button-group">
+        <a href="${fullUrl}" class="btn download-btn" title="Download to device">↓</a>
+        <button class="btn copy-btn" onclick="copyToClipboard('${fullUrl}', this)">Copy</button>
+      </div>
+    </li>
+  `;
+        }).join('');
+      } catch (e) {
+        list.innerHTML = '<li>Failed to load history.</li>';
+      }
+    }
+
+    // The Clipboard Logic
+    async function copyToClipboard(text, btn) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const originalText = btn.innerText;
+        btn.innerText = 'Copied!';
+        btn.classList.add('success');
+
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          btn.innerText = originalText;
+          btn.classList.remove('success');
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy: ', err);
+        alert('Could not copy link. Check browser permissions.');
+      }
+    }
+
+    // Use DOMContentLoaded instead of window.onload for reliability
+    document.addEventListener('DOMContentLoaded', loadRecent);
+  </script>
+</body>
+
+</html>

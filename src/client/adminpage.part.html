@@ -1,0 +1,142 @@
+<!-- adminpage.part.html -->
+
+<body>
+    <h1>Admin Page - File Drop</h1>
+
+    <div id="create-new-user" style="margin-bottom: 20px;">
+        <h2>Create New Access Token</h2>
+        <input type="text" id="newUserName" placeholder="User Name"
+            style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; margin-right: 10px;">
+        <input type="email" id="newUserEmail" placeholder="User Email (optional)"
+            style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; margin-right: 10px;">
+        <label style="margin-right: 10px;">
+            <input type="checkbox" id="newUserIsAdmin" style="margin-right: 5px;">
+            <span style="color: white;">Set as Admin</span>
+        </label>
+        <button id="createTokenBtn"
+            style="padding: 10px 20px; border-radius: 8px; border: none; background: #0070f3; color: white;">Create
+            Token</button>
+    </div>
+
+    <div id="token-list">
+        Loading token list content...
+
+    </div>
+
+
+</body>
+
+<script>
+    // Handle Create Token Button Click
+    document.getElementById('createTokenBtn').addEventListener('click', async () => {
+        const name = document.getElementById('newUserName').value.trim();
+        const email = document.getElementById('newUserEmail').value.trim();
+        const isAdmin = document.getElementById('newUserIsAdmin').checked;
+
+        if (!name) {
+            alert('User name is required');
+            return;
+        }
+
+        try {
+            const response = await fetch('/admin/create-new-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userName: name, userEmail: email, is_admin: isAdmin })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert(`New token created: ${result.token}`);
+                document.getElementById('newUserName').value = '';
+                document.getElementById('newUserEmail').value = '';
+                document.getElementById('newUserIsAdmin').checked = false;
+                loadTokens(); // Refresh the token list
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    });
+
+
+    // Fetch tokens from server and populate the table
+    async function loadTokens() {
+        try {
+            const response = await fetch('/admin/tokens'); // You'll need to create this endpoint
+            const tokens = await response.json();
+
+            const rows = tokens.map(t => `
+                <tr>
+                    <td>${t.user_name}</td>
+                    <td>${t.user_email}</td>
+                    <td><code>${t.token}</code></td>
+                    <td>${t.use_count}</td>
+                    <td>${t.is_active ? 'Yes' : 'No'}</td>
+                    <td><input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.id}', this.checked)" style="cursor: pointer;"></td>
+                    <td><button onclick="killToken('${t.token}')">Revoke</button></td>
+                </tr>
+            `).join('');
+
+            const html = `
+                <table>
+                    <thead>
+                        <tr><th>User Name</th><th>User Email</th><th>Token</th><th>Uses</th><th>Status</th><th>Admin</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+
+            document.getElementById('token-list').innerHTML = html;
+        } catch (error) {
+            document.getElementById('token-list').innerHTML = `<p style="color: red;">Error loading tokens: ${error.message}</p>`;
+        }
+    }
+
+    // Load tokens when page loads
+    window.addEventListener('DOMContentLoaded', loadTokens);
+
+
+
+    // Toggle admin status
+    async function toggleAdmin(id, isAdmin) {
+        try {
+            const response = await fetch('/admin/update-admin-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, is_admin: isAdmin })
+            });
+            const result = await response.json();
+            if (!result.success) {
+                alert(`Error: ${result.error}`);
+                loadTokens(); // Refresh to show original state
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+            loadTokens(); // Refresh to show original state
+        }
+    }
+
+    // Revoke a token
+    async function killToken(token) {
+        if (confirm('Are you sure you want to revoke this token?')) {
+            try {
+                const response = await fetch('/admin/revoke-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadTokens(); // Refresh the token list
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+    }
+</script>
+
+</html>

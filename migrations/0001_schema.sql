@@ -23,7 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_file_log_original_filename ON file_log(original_f
 -- Index for faster searching by slug
 CREATE INDEX IF NOT EXISTS idx_file_log_slug ON file_log(slug);
 -- Virtual table for searching filenames and tags
-CREATE VIRTUAL TABLE file_search_idx USING fts5(
+CREATE VIRTUAL TABLE IF NOT EXISTS file_search_idx USING fts5(
     slug UNINDEXED, 
     original_filename, 
     tags,

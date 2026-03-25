@@ -32,3 +32,14 @@ CREATE VIRTUAL TABLE file_search_idx USING fts5(
 -- Example Search Query:
 -- SELECT * FROM file_log WHERE slug IN (SELECT slug FROM file_search_idx WHERE file_search_idx MATCH 'tax documents');
 
+
+-- User Access Tokens for upload tracking and user management
+CREATE TABLE IF NOT EXISTS access_tokens (
+    token TEXT PRIMARY KEY,
+    user_name TEXT NOT NULL,
+    user_email TEXT,
+    use_count INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used DATETIME
+);

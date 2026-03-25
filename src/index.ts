@@ -1,28 +1,26 @@
 /**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
+ * Cloudflare Workers File Drop
+ * A simple file sharing service built on Cloudflare Workers, R2, and D1.
  */
 
 import { Hono } from 'hono'
+
+// preload HTML parts and styles (embed them directly)
 // @ts-ignore
 import sharedHead from './client/head.part.html'
 // @ts-ignore
 import sharedStyle from './client/style.part.css'
 // @ts-ignore
+import startPage from './client/startpage.part.html'
+// @ts-ignore
+import newUpload from './client/newupload.part.html'
+// @ts-ignore
+import adminPage from './client/adminpage.part.html'
+// @ts-ignore
 import maxDownload from './client/maxdownload.part.html'
 // @ts-ignore
 import download from './client/download.part.html'
 
-// import uploadHtml from './client/upload2.html'
-const uploadHtml = ``;
 
 // This tells Hono about your Cloudflare "Bindings"
 type Bindings = {
@@ -34,7 +32,40 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-// The Upload Endpoint (for your iPhone/macOS)
+// The Default Endpoint - public
+app.get('/', (c) => {
+	const html =
+		sharedHead
+			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+		startPage
+
+	return c.html(html);
+
+})
+
+// The Admin Endpoint - private needs password (or unique pin)
+app.get('/admin', (c) => {
+	const html =
+		sharedHead
+			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+		adminPage
+
+	return c.html(html);
+
+})
+
+// upload a new file - private needs unique pin
+app.get('/newupload', (c) => {
+	const html =
+		sharedHead
+			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+		newUpload
+
+	return c.html(html);
+})
+
+
+// The Upload Endpoint (for your iPhone/macOS) - private, needs password (or unique pin)
 app.post('/upload', async (c) => {
 
 	const body = await c.req.parseBody();
@@ -86,7 +117,7 @@ app.post('/upload', async (c) => {
 
 
 // The Download/Share Endpoint
-// 1. The Public Landing Page
+// 1. The Public Landing Page - public
 app.get('/f/:slug', async (c) => {
 	const slug = c.req.param('slug');
 	const MAX_DOWNLOADS = 3; // Your "Reasonable" limit
@@ -142,7 +173,7 @@ app.get('/f/:slug', async (c) => {
 	return c.html(html);
 });
 
-// 2. The Actual Download Stream
+// 2. The Actual Download Stream - public, but with all the checks in place from the landing page
 app.get('/f/:slug/raw', async (c) => {
 	const slug = c.req.param('slug');
 	const file = await c.env.DB.prepare(
@@ -168,16 +199,12 @@ app.get('/f/:slug/raw', async (c) => {
 });
 
 
-// Serve the PWA Manifest
+// Serve the PWA Manifest - public
 app.get('/manifest.json', (c) => {
 	return c.json(require('../public/manifest.json')) // Or just paste the JSON here
 })
 
-// Simple Upload UI (The "Dashboard")
-app.get('/up', (c) => {
-	return c.html(uploadHtml)
-})
-
+// An API Endpoint to List Recent Uploads - private, needs password (or unique pin)
 // list recent uploads (for demo purposes) - In a real app, you'd want pagination and better security around this!
 app.get('/api/recent', async (c) => {
 	// Query the last 5 non-deleted files
@@ -192,7 +219,76 @@ app.get('/api/recent', async (c) => {
 	return c.json(results);
 });
 
-// The Default Endpoint
+// admin create-new-user endpoint
+app.post('/admin/create-new-user', async (c) => {
+	const token = generateToken(16); // Generate a random token for the new user
+	const body = await c.req.json();
+	const userName = body.userName as string;
+	const userEmail = body.userEmail as string;
+	const isAdmin = body.isAdmin as boolean;
+
+	if (!userName) {
+		return c.json({ success: false, error: 'User name is required' }, 400);
+	}
+
+	// Insert the new token into the database
+	await c.env.DB.prepare(`
+		INSERT INTO access_tokens (token, user_name, user_email, is_admin) 
+		VALUES (?, ?, ?, ?)
+	`).bind(token, userName, userEmail, isAdmin ? 1 : 0).run();
+
+	return c.json({ success: true, token });
+});
+
+// Helper to create a token
+const generateToken = (length = 8) => {
+	const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+	const array = new Uint8Array(length);
+	crypto.getRandomValues(array);
+	return Array.from(array, (byte) => chars[byte % chars.length]).join('');
+};
+
+// Admin endpoint to list access tokens
+app.get('/admin/tokens', async (c) => {
+	const { results } = await c.env.DB.prepare(
+		"SELECT id, user_name, user_email, token, use_count, is_active, created_at FROM access_tokens ORDER BY created_at DESC"
+	).all();
+
+	return c.json(results);
+});
+// Admin endpoint to update admin status
+app.post('/admin/update-admin-status', async (c) => {
+	const body = await c.req.json();
+	const id = body.id as string;
+	const isAdmin = body.isAdmin as boolean;
+
+	if (!id) {
+		return c.json({ success: false, error: 'ID is required' }, 400);
+	}
+
+	await c.env.DB.prepare(
+		"UPDATE access_tokens SET is_admin = ? WHERE id = ?"
+	).bind(isAdmin ? 1 : 0, id).run();
+
+	return c.json({ success: true });
+});
+
+// Admin endpoint to revoke a token
+app.post('/admin/revoke-token', async (c) => {
+	const body = await c.req.json();
+	const token = body.token as string;
+
+	if (!token) {
+		return c.json({ success: false, error: 'Token is required' }, 400);
+	}
+
+	await c.env.DB.prepare(
+		"UPDATE access_tokens SET is_active = 0 WHERE token = ?"
+	).bind(token).run();
+
+	return c.json({ success: true });
+});
+// The Default Endpoint - public, just to test that the worker is running. You can remove this once you have the main functionality working.
 app.get('/hello', async (c) => {
 	return c.text(`Hello from Cloudflare Workers!`)
 })
