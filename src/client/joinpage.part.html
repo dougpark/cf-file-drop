@@ -82,6 +82,23 @@
                 </div>
             </div>
 
+            <!-- Admin card -->
+            <div id="admin-card" class="hidden"
+                style="background: #1e1e1e; border: 1px solid #1a2a4a; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 1.1em; font-weight: bold; color: white;">Administration</span>
+                    <span
+                        style="font-size: 0.7em; padding: 3px 10px; border-radius: 12px; background: #1a2a4a; color: #64b5f6; font-weight: 600; letter-spacing: 0.5px;">ADMIN</span>
+                </div>
+                <div style="padding-top: 4px; border-top: 1px solid #1a2a4a;">
+                    <p style="color: #888; font-size: 0.85em; margin: 0 0 8px 0;">Manage users, access tokens and
+                        permissions.</p>
+                    <button onclick="window.location.href='/admin'"
+                        style="padding: 6px 12px; border-radius: 6px; border: none; background: #1a2a4a; color: #64b5f6; cursor: pointer; font-size: 0.85em; font-weight: 600;">Go
+                        to Admin Panel</button>
+                </div>
+            </div>
+
         </div><!-- end authorized -->
 
     </div><!-- end shared container -->
@@ -119,6 +136,9 @@
                         data.user.user_name).replace('{{ACCESS_TOKEN}}', token);
 
                 document.getElementById('authorized').classList.remove('hidden');
+                if (data.user.is_admin) {
+                    document.getElementById('admin-card').classList.remove('hidden');
+                }
             } else {
                 document.getElementById('unauthorized').classList.remove('hidden');
                 notify('Invalid join link. Please request a new one.', 'error');
@@ -140,6 +160,9 @@
                             data.user.user_name).replace('{{ACCESS_TOKEN}}', storedToken);
 
                     document.getElementById('authorized').classList.remove('hidden');
+                    if (data.user.is_admin) {
+                        document.getElementById('admin-card').classList.remove('hidden');
+                    }
                 } else {
                     localStorage.removeItem('d11_token');
                     document.getElementById('unauthorized').classList.remove('hidden');
