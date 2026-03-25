@@ -77,6 +77,7 @@
                     <td>
                         <button onclick="disableToken('${t.token}')">Disable</button>
                         <button onclick="enableToken('${t.token}')">Enable</button>
+                        <button onclick="copyJoinLink('${t.token}')">Copy</button>
                     </td>
                 </tr>
             `).join('');
@@ -160,6 +161,16 @@
                 alert(`Error: ${error.message}`);
             }
         }
+    }
+
+    // Copy join link to clipboard
+    function copyJoinLink(token) {
+        const url = `https://drop.d11cloud.com/join?t=${token}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert(`Join link copied!\n${url}`);
+        }).catch(() => {
+            prompt('Copy this join link:', url);
+        });
     }
 </script>
 
