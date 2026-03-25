@@ -273,8 +273,24 @@ app.post('/admin/update-admin-status', async (c) => {
 	return c.json({ success: true });
 });
 
-// Admin endpoint to revoke a token
-app.post('/admin/revoke-token', async (c) => {
+// Admin endpoint to enable a token
+app.post('/admin/enable-token', async (c) => {
+	const body = await c.req.json();
+	const token = body.token as string;
+
+	if (!token) {
+		return c.json({ success: false, error: 'Token is required' }, 400);
+	}
+
+	await c.env.DB.prepare(
+		"UPDATE access_tokens SET is_active = 1 WHERE token = ?"
+	).bind(token).run();
+
+	return c.json({ success: true });
+});
+
+// Admin endpoint to disable a token
+app.post('/admin/disable-token', async (c) => {
 	const body = await c.req.json();
 	const token = body.token as string;
 

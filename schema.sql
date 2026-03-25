@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS file_log (
     last_downloaded_at INTEGER,         -- Unix timestamp metric to track latest download
     uploaded_by TEXT DEFAULT 'admin',   -- uploaded user
     uploaded_at INTEGER DEFAULT (strftime('%s','now')), -- Unix timestamp, Upload time, Consistent Epoch storage
-    deleted_at INTEGER                  -- Unix timestamp allows soft deletes
+    deleted_at INTEGER,                  -- Unix timestamp allows soft deletes
+    created_by_token TEXT,              -- Track which access token was used for upload
+    receiver_name TEXT                 -- Optional field to track intended recipient
 );
 
 -- Index for faster searching by filename
@@ -23,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_file_log_original_filename ON file_log(original_f
 -- Index for faster searching by slug
 CREATE INDEX IF NOT EXISTS idx_file_log_slug ON file_log(slug);
 -- Virtual table for searching filenames and tags
-CREATE VIRTUAL TABLE file_search_idx USING fts5(
+CREATE VIRTUAL TABLE IF NOT EXISTS file_search_idx USING fts5(
     slug UNINDEXED, 
     original_filename, 
     tags,
@@ -41,5 +43,6 @@ CREATE TABLE IF NOT EXISTS access_tokens (
     use_count INTEGER DEFAULT 0,
     is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_used DATETIME
+    last_used DATETIME,
+    is_admin INTEGER DEFAULT 0
 );

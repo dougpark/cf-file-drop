@@ -74,14 +74,17 @@
                     <td>${t.use_count}</td>
                     <td>${t.is_active ? 'Yes' : 'No'}</td>
                     <td><input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.token}', this.checked)" style="cursor: pointer;"></td>
-                    <td><button onclick="killToken('${t.token}')">Revoke</button></td>
+                    <td>
+                        <button onclick="disableToken('${t.token}')">Disable</button>
+                        <button onclick="enableToken('${t.token}')">Enable</button>
+                    </td>
                 </tr>
             `).join('');
 
             const html = `
                 <table>
                     <thead>
-                        <tr><th>User Name</th><th>User Email</th><th>Token</th><th>Uses</th><th>Status</th><th>Admin</th><th>Action</th></tr>
+                        <tr><th>User Name</th><th>User Email</th><th>Token</th><th>Uses</th><th>Enabled</th><th>Admin</th><th>Action</th></tr>
                     </thead>
                     <tbody>${rows}</tbody>
                 </table>
@@ -117,11 +120,32 @@
         }
     }
 
-    // Revoke a token
-    async function killToken(token) {
-        if (confirm('Are you sure you want to revoke this token?')) {
+    // Disable a token
+    async function disableToken(token) {
+        if (confirm('Are you sure you want to disable this token?')) {
             try {
-                const response = await fetch('/admin/revoke-token', {
+                const response = await fetch('/admin/disable-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadTokens(); // Refresh the token list
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+    }
+
+    // Enable a token
+    async function enableToken(token) {
+        if (confirm('Are you sure you want to enable this token?')) {
+            try {
+                const response = await fetch('/admin/enable-token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: token })
