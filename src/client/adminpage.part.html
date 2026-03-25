@@ -3,26 +3,33 @@
 <body>
     <h1>Admin Page - File Drop</h1>
 
-    <div id="create-new-user" style="margin-bottom: 20px;">
-        <h2>Create New Access Token</h2>
-        <input type="text" id="newUserName" placeholder="User Name"
-            style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; margin-right: 10px;">
-        <input type="email" id="newUserEmail" placeholder="User Email (optional)"
-            style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white; margin-right: 10px;">
-        <label style="margin-right: 10px;">
-            <input type="checkbox" id="newUserIsAdmin" style="margin-right: 5px;">
-            <span style="color: white;">Set as Admin</span>
-        </label>
-        <button id="createTokenBtn"
-            style="padding: 10px 20px; border-radius: 8px; border: none; background: #0070f3; color: white;">Create
-            Token</button>
+    <div style="display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto;">
+
+    <div id="create-new-user"
+        style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+        <span style="font-size: 1.1em; font-weight: bold; color: white;">New Access Token</span>
+        <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #333;">
+            <input type="text" id="newUserName" placeholder="User Name"
+                style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
+            <input type="email" id="newUserEmail" placeholder="User Email (optional)"
+                style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <label
+                    style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
+                    <input type="checkbox" id="newUserIsAdmin"> Admin
+                </label>
+                <button id="createTokenBtn"
+                    style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Create
+                    Token</button>
+            </div>
+        </div>
     </div>
 
     <div id="token-list">
         Loading token list content...
-
     </div>
 
+    </div><!-- end shared container -->
 
 </body>
 
@@ -66,30 +73,34 @@
             const response = await fetch('/admin/tokens'); // You'll need to create this endpoint
             const tokens = await response.json();
 
-            const rows = tokens.map(t => `
-                <tr>
-                    <td>${t.user_name}</td>
-                    <td>${t.user_email}</td>
-                    <td><code>${t.token}</code></td>
-                    <td>${t.use_count}</td>
-                    <td>${t.is_active ? 'Yes' : 'No'}</td>
-                    <td><input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.token}', this.checked)" style="cursor: pointer;"></td>
-                    <td>
-                        <button onclick="disableToken('${t.token}')">Disable</button>
-                        <button onclick="enableToken('${t.token}')">Enable</button>
-                        <button onclick="copyJoinLink('${t.token}')">Copy</button>
-                    </td>
-                </tr>
+            const cards = tokens.map(t => `
+                <div style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                        <span style="font-size: 1.1em; font-weight: bold; color: white;">${t.user_name}</span>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <span style="font-size: 0.75em; padding: 3px 8px; border-radius: 12px; background: ${t.is_active ? '#1a4a1a' : '#4a1a1a'}; color: ${t.is_active ? '#4caf50' : '#f44336'};">
+                                ${t.is_active ? 'Enabled' : 'Disabled'}
+                            </span>
+                            ${t.is_admin ? '<span style="font-size: 0.75em; padding: 3px 8px; border-radius: 12px; background: #1a2a4a; color: #64b5f6;">Admin</span>' : ''}
+                        </div>
+                    </div>
+                    <div style="color: #aaa; font-size: 0.85em;">${t.user_email || '<em>No email</em>'}</div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <code style="font-size: 0.8em; background: #111; padding: 4px 8px; border-radius: 6px; color: #ccc; word-break: break-all;">${t.token}</code>
+                        <span style="color: #666; font-size: 0.8em;">${t.use_count} use${t.use_count !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 4px; border-top: 1px solid #333;">
+                        <label style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
+                            <input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.token}', this.checked)"> Admin
+                        </label>
+                        <button onclick="disableToken('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #555; color: white; cursor: pointer; font-size: 0.85em;">Disable</button>
+                        <button onclick="enableToken('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Enable</button>
+                        <button onclick="copyJoinLink('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #333; color: #64b5f6; cursor: pointer; font-size: 0.85em;">📋 Copy Link</button>
+                    </div>
+                </div>
             `).join('');
 
-            const html = `
-                <table>
-                    <thead>
-                        <tr><th>User Name</th><th>User Email</th><th>Token</th><th>Uses</th><th>Enabled</th><th>Admin</th><th>Action</th></tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            `;
+            const html = `<div style="display: flex; flex-direction: column; gap: 12px;">${cards}</div>`;
 
             document.getElementById('token-list').innerHTML = html;
         } catch (error) {
