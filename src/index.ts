@@ -11,7 +11,7 @@ import sharedHead from './client/head.part.html'
 // @ts-ignore
 import sharedStyle from './client/style.part.css'
 // @ts-ignore
-import startPage from './client/startpage.part.html'
+import joinPage from './client/joinPage.part.html'
 // @ts-ignore
 import newUpload from './client/newupload.part.html'
 // @ts-ignore
@@ -32,12 +32,24 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-// The Default Endpoint - public
+//The Default Endpoint - public
 app.get('/', (c) => {
 	const html =
 		sharedHead
 			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
-		startPage
+		"Welcome to drop.d11cloud.com! \
+		Please contact the admin to receive your access link."
+
+	return c.html(html);
+
+})
+
+// join page - public, but with a unique token in the URL to prevent random people from stumbling on it. This is where you would share the "join" link with your friends or family so they can upload files without needing the admin password. The token can be a simple random string that you generate and share privately.
+app.get('/join', (c) => {
+	const html =
+		sharedHead
+			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+		joinPage
 
 	return c.html(html);
 
@@ -217,6 +229,26 @@ app.get('/api/recent', async (c) => {
   `).all();
 
 	return c.json(results);
+});
+
+// user-info endpoint - private, needs token
+app.get('/api/user-info', async (c) => {
+
+	const authHeader = c.req.header('Authorization');
+	const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!token) {
+		return c.json({ success: false, error: 'Token is required' }, 400);
+	}
+
+	const user = await c.env.DB.prepare(
+		"SELECT user_name, user_email, is_admin FROM access_tokens WHERE token = ? AND is_active = 1"
+	).bind(token).first();
+
+	if (!user) {
+		return c.json({ success: false, error: 'Invalid or inactive token' }, 401);
+	}
+
+	return c.json({ success: true, user });
 });
 
 // admin create-new-user endpoint
