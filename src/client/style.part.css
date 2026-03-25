@@ -1,7 +1,7 @@
 /* style.part.css */
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 /* Toast notification system */

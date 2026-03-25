@@ -1,48 +1,107 @@
 <!-- startpage.part.html -->
 
 <body>
-    <div id="unauthorized" class="hidden" style="text-align: center; padding: 50px; color: white;">
-        <h1>Welcome to File Drop</h1>
-        <p>Please use a valid join link to access the upload page.</p>
-    </div>
 
-    <div id="authorized" class="hidden" style="text-align: center; padding: 50px; color: white;">
-        <h1>Welcome to File Drop</h1>
+    <div id="toast-container"></div>
 
-        <div id="welcome"
-            style="text-align: center; background: #333; padding: 20px; border-radius: 8px; color: white;">
-            <h2> Hi {{USER_NAME}}! </h2>
-            <p>Welcome to the File Drop service! You have been assigned the following access token:</p>
-            <h2 style="color: green; font-size: 1.5em;">{{ACCESS_TOKEN}}</h2>
-            <p>Please keep this token safe, as it is required to upload files.
-                It will be stored in your browser's local storage for convenience,
-                but you can also bookmark this page.
-            </p>
-            <p>To get started, click the "Upload" button below.
-                After uploading, you'll receive a unique link that you can share with others to download the file.</p>
-        </div>
-
-        <div id="upload-section"
-            style="border: 1px solid #444; box-shadow: 0 0 10px rgba(0,0,0,0.5); color: white; margin-top: 30px; text-align: center; padding: 20px; border-radius: 8px;">
-            <h2>Upload a File</h2>
-            <input type="file" id="fileInput"
-                style="padding: 10px; border-radius: 8px; border: 1px solid #444; background: #222; color: white;">
-            <button id="uploadBtn"
-                style="padding: 10px 20px; border-radius: 8px; border: none; background: #0070f3; color: white;">Upload</button>
-        </div>
-
-        <div id="stats"
-            style="border: 1px solid #444; box-shadow: 0 0 10px rgba(0,0,0,0.5); color: white; margin-top: 30px; text-align: center; padding: 20px; border-radius: 8px;">
-            <h2>Usage Statistics</h2>
-            <p>Total Files Uploaded: <span id="totalUploads">Loading...</span></p>
-            <p>Total Storage Used: <span id="totalStorage">Loading...</span></p>
-            <p>Last Activity: <span id="lastActivity">Loading...</span></p>
+    <!-- Top Nav Bar -->
+    <div
+        style="position: sticky; top: 0; z-index: 100; background: #111; border-bottom: 1px solid #333; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.4em;">📂</span>
+            <span style="color: white; font-weight: 700; font-size: 1em; letter-spacing: 0.5px;">File Drop</span>
         </div>
     </div>
+
+    <!-- Page Header -->
+    <div
+        style="padding: 24px 16px 8px 16px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <h1 style="margin: 0 0 4px 0; font-size: 1.5em; color: white; font-weight: 700;">Welcome</h1>
+        <p style="margin: 0; color: #888; font-size: 0.85em;">Your personal file sharing access.</p>
+    </div>
+
+    <div
+        style="display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; padding: 12px 16px 32px 16px;">
+
+        <!-- Unauthorized state -->
+        <div id="unauthorized" class="hidden"
+            style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; text-align: center;">
+            <span style="font-size: 2em;">🔒</span>
+            <span style="font-size: 1.1em; font-weight: bold; color: white;">Access Required</span>
+            <p style="color: #888; font-size: 0.85em; margin: 0;">Please use a valid join link to access File Drop.</p>
+        </div>
+
+        <!-- Authorized state -->
+        <div id="authorized" class="hidden" style="display: flex; flex-direction: column; gap: 12px;">
+
+            <!-- Welcome card -->
+            <div id="welcome"
+                style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-size: 1.1em; font-weight: bold; color: white;">Hi {{USER_NAME}}!</span>
+                <div
+                    style="padding-top: 4px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 6px;">
+                    <p style="color: #aaa; font-size: 0.85em; margin: 0;">Your access token:</p>
+                    <code
+                        style="font-size: 0.8em; background: #111; padding: 6px 10px; border-radius: 6px; color: #64b5f6; word-break: break-all;">{{ACCESS_TOKEN}}</code>
+                    <p style="color: #666; font-size: 0.8em; margin: 0;">Stored in your browser automatically. Bookmark
+                        this page to return later.</p>
+                </div>
+            </div>
+
+            <!-- Upload card -->
+            <div id="upload-section"
+                style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-size: 1.1em; font-weight: bold; color: white;">Upload a File</span>
+                <div
+                    style="padding-top: 4px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 8px;">
+                    <input type="file" id="fileInput"
+                        style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
+                    <button id="uploadBtn"
+                        style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Upload</button>
+                </div>
+            </div>
+
+            <!-- Stats card -->
+            <div id="stats"
+                style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-size: 1.1em; font-weight: bold; color: white;">Usage Statistics</span>
+                <div
+                    style="padding-top: 4px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
+                        <span style="color: #888;">Files Uploaded</span>
+                        <span style="color: white;" id="totalUploads">Loading...</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
+                        <span style="color: #888;">Storage Used</span>
+                        <span style="color: white;" id="totalStorage">Loading...</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85em;">
+                        <span style="color: #888;">Last Activity</span>
+                        <span style="color: white;" id="lastActivity">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- end authorized -->
+
+    </div><!-- end shared container -->
 
 </body>
 
 <script>
+    // Reusable toast notification
+    function notify(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            toast.addEventListener('transitionend', () => toast.remove());
+        }, duration);
+    }
+
     // get access token from URL query parameter
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('t');
@@ -62,6 +121,7 @@
                 document.getElementById('authorized').classList.remove('hidden');
             } else {
                 document.getElementById('unauthorized').classList.remove('hidden');
+                notify('Invalid join link. Please request a new one.', 'error');
             }
         });
 
@@ -83,6 +143,7 @@
                 } else {
                     localStorage.removeItem('d11_token');
                     document.getElementById('unauthorized').classList.remove('hidden');
+                    notify('Your session has expired. Please use a new join link.', 'error');
                 }
             });
         } else {
