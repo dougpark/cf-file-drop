@@ -2,6 +2,8 @@
 
 <body>
 
+    <div id="toast-container"></div>
+
     <!-- Top Nav Bar -->
     <div
         style="position: sticky; top: 0; z-index: 100; background: #111; border-bottom: 1px solid #333; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
@@ -51,6 +53,19 @@
 </body>
 
 <script>
+    // Reusable toast notification — notify('message', 'success' | 'error' | 'info')
+    function notify(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            toast.addEventListener('transitionend', () => toast.remove());
+        }, duration);
+    }
+
     // Handle Create Token Button Click
     document.getElementById('createTokenBtn').addEventListener('click', async () => {
         const name = document.getElementById('newUserName').value.trim();
@@ -58,7 +73,7 @@
         const is_admin = document.getElementById('newUserIsAdmin').checked;
 
         if (!name) {
-            alert('User name is required');
+            notify('User name is required', 'error');
             return;
         }
 
@@ -70,16 +85,16 @@
             });
             const result = await response.json();
             if (result.success) {
-                // alert(`New token created: ${result.token}`);
+                notify('Token created successfully', 'success');
                 document.getElementById('newUserName').value = '';
                 document.getElementById('newUserEmail').value = '';
                 document.getElementById('newUserIsAdmin').checked = false;
                 loadTokens(); // Refresh the token list
             } else {
-                alert(`Error: ${result.error}`);
+                notify(`Error: ${result.error}`, 'error');
             }
         } catch (error) {
-            alert(`Error: ${error.message}`);
+            notify(`Error: ${error.message}`, 'error');
         }
     });
 
@@ -139,55 +154,55 @@
                 body: JSON.stringify({ token: token, is_admin: is_admin })
             });
             const result = await response.json();
-            if (!result.success) {
-                alert(`Error: ${result.error}`);
+            if (result.success) {
+                notify(`Admin status ${is_admin ? 'granted' : 'removed'}`, 'success');
+            } else {
+                notify(`Error: ${result.error}`, 'error');
                 loadTokens(); // Refresh to show original state
             }
         } catch (error) {
-            alert(`Error: ${error.message}`);
+            notify(`Error: ${error.message}`, 'error');
             loadTokens(); // Refresh to show original state
         }
     }
 
     // Disable a token
     async function disableToken(token) {
-        if (confirm('Are you sure you want to disable this token?')) {
-            try {
-                const response = await fetch('/admin/disable-token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    loadTokens(); // Refresh the token list
-                } else {
-                    alert(`Error: ${result.error}`);
-                }
-            } catch (error) {
-                alert(`Error: ${error.message}`);
+        try {
+            const response = await fetch('/admin/disable-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
+            const result = await response.json();
+            if (result.success) {
+                notify('Token disabled', 'info');
+                loadTokens();
+            } else {
+                notify(`Error: ${result.error}`, 'error');
             }
+        } catch (error) {
+            notify(`Error: ${error.message}`, 'error');
         }
     }
 
     // Enable a token
     async function enableToken(token) {
-        if (confirm('Are you sure you want to enable this token?')) {
-            try {
-                const response = await fetch('/admin/enable-token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    loadTokens(); // Refresh the token list
-                } else {
-                    alert(`Error: ${result.error}`);
-                }
-            } catch (error) {
-                alert(`Error: ${error.message}`);
+        try {
+            const response = await fetch('/admin/enable-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
+            const result = await response.json();
+            if (result.success) {
+                notify('Token enabled', 'success');
+                loadTokens();
+            } else {
+                notify(`Error: ${result.error}`, 'error');
             }
+        } catch (error) {
+            notify(`Error: ${error.message}`, 'error');
         }
     }
 
@@ -195,7 +210,7 @@
     function copyJoinLink(token) {
         const url = `https://drop.d11cloud.com/join?t=${token}`;
         navigator.clipboard.writeText(url).then(() => {
-            alert(`Join link copied!\n${url}`);
+            notify('Join link copied to clipboard', 'success');
         }).catch(() => {
             prompt('Copy this join link:', url);
         });
