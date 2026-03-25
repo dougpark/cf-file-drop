@@ -2,6 +2,24 @@
 
 <body>
 
+    <style>
+        .filter-chip {
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            background: none;
+            color: #777;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .filter-chip.active {
+            background: #0070f3;
+            color: white;
+            border-color: #0070f3;
+        }
+    </style>
+
     <div id="toast-container"></div>
 
     <!-- Top Nav Bar -->
@@ -11,8 +29,45 @@
             <span style="font-size: 1.4em;">📂</span>
             <span style="color: white; font-weight: 700; font-size: 1em; letter-spacing: 0.5px;">File Drop</span>
         </div>
-        <span
-            style="font-size: 0.7em; padding: 3px 10px; border-radius: 12px; background: #1a2a4a; color: #64b5f6; font-weight: 600; letter-spacing: 0.5px;">ADMIN</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <span
+                style="font-size: 0.7em; padding: 3px 10px; border-radius: 12px; background: #1a2a4a; color: #64b5f6; font-weight: 600; letter-spacing: 0.5px;">ADMIN</span>
+            <button id="filter-toggle-btn" onclick="toggleFilter()"
+                style="background: none; border: 1px solid #444; color: #aaa; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-size: 0.75em; display: flex; align-items: center; gap: 5px; line-height: 1;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.75-7.39A1 1 0 0 0 18.95 4H5.04a1 1 0 0 0-.79 1.61z" />
+                </svg>
+                Filter
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div id="filter-panel"
+        style="display: none; background: #111; border-bottom: 1px solid #2a2a2a; padding: 12px 16px;">
+        <div style="max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px;">
+            <input type="text" id="filter-search" placeholder="Search by name or email…" oninput="applyFilter()"
+                style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 0.85em;">
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <span style="color: #555; font-size: 0.78em; width: 38px;">Status</span>
+                <button class="filter-chip active" data-group="status" data-value="all"
+                    onclick="setChip(this)">All</button>
+                <button class="filter-chip" data-group="status" data-value="active"
+                    onclick="setChip(this)">Active</button>
+                <button class="filter-chip" data-group="status" data-value="disabled"
+                    onclick="setChip(this)">Disabled</button>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <span style="color: #555; font-size: 0.78em; width: 38px;">Role</span>
+                <button class="filter-chip active" data-group="role" data-value="all"
+                    onclick="setChip(this)">All</button>
+                <button class="filter-chip" data-group="role" data-value="admin" onclick="setChip(this)">Admin</button>
+                <button class="filter-chip" data-group="role" data-value="standard"
+                    onclick="setChip(this)">Standard</button>
+            </div>
+            <div id="filter-count" style="color: #555; font-size: 0.78em; text-align: right;"></div>
+        </div>
     </div>
 
     <!-- Page Header -->
@@ -99,42 +154,92 @@
     });
 
 
-    // Fetch tokens from server and populate the table
-    async function loadTokens() {
-        try {
-            const response = await fetch('/admin/tokens'); // You'll need to create this endpoint
-            const tokens = await response.json();
+    // --- Filter state ---
+    let allTokens = [];
+    const filterState = { status: 'all', role: 'all' };
 
-            const cards = tokens.map(t => `
-                <div style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-                        <span style="font-size: 1.1em; font-weight: bold; color: white;">${t.user_name}</span>
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <span style="font-size: 0.75em; padding: 3px 8px; border-radius: 12px; background: ${t.is_active ? '#1a4a1a' : '#4a1a1a'}; color: ${t.is_active ? '#4caf50' : '#f44336'};">
-                                ${t.is_active ? 'Enabled' : 'Disabled'}
-                            </span>
-                            ${t.is_admin ? '<span style="font-size: 0.75em; padding: 3px 8px; border-radius: 12px; background: #1a2a4a; color: #64b5f6;">Admin</span>' : ''}
-                        </div>
-                    </div>
-                    <div style="color: #aaa; font-size: 0.85em;">${t.user_email || '<em>No email</em>'}</div>
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <code style="font-size: 0.8em; background: #111; padding: 4px 8px; border-radius: 6px; color: #ccc; word-break: break-all;">${t.token}</code>
-                        <span style="color: #666; font-size: 0.8em;">${t.use_count} use${t.use_count !== 1 ? 's' : ''}</span>
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 4px; border-top: 1px solid #333;">
-                        <label style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
-                            <input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.token}', this.checked)"> Admin
-                        </label>
-                        <button onclick="disableToken('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #555; color: white; cursor: pointer; font-size: 0.85em;">Disable</button>
-                        <button onclick="enableToken('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Enable</button>
-                        <button onclick="copyJoinLink('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #333; color: #64b5f6; cursor: pointer; font-size: 0.85em;">📋 Copy Link</button>
+    // Render a subset of tokens into the list
+    function renderCards(tokens) {
+        if (!tokens.length) {
+            document.getElementById('token-list').innerHTML =
+                '<div style="color: #555; font-size: 0.9em; text-align: center; padding: 32px;">No tokens match your filters.</div>';
+            return;
+        }
+        const cards = tokens.map(t => `
+            <div style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-size: 1.1em; font-weight: bold; color: white;">${t.user_name}</span>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <span style="font-size: 0.75em; padding: 3px 8px; border-radius: 12px; background: ${t.is_active ? '#1a4a1a' : '#4a1a1a'}; color: ${t.is_active ? '#4caf50' : '#f44336'};">
+                            ${t.is_active ? 'Enabled' : 'Disabled'}
+                        </span>
+                        ${t.is_admin ? '<span style="font-size: 0.75em; padding: 3px 8px; border-radius: 12px; background: #1a2a4a; color: #64b5f6;">Admin</span>' : ''}
                     </div>
                 </div>
-            `).join('');
+                <div style="color: #aaa; font-size: 0.85em;">${t.user_email || '<em>No email</em>'}</div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <code style="font-size: 0.8em; background: #111; padding: 4px 8px; border-radius: 6px; color: #ccc; word-break: break-all;">${t.token}</code>
+                    <span style="color: #666; font-size: 0.8em;">${t.use_count} use${t.use_count !== 1 ? 's' : ''}</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: 4px; border-top: 1px solid #333;">
+                    <label style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
+                        <input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.token}', this.checked)"> Admin
+                    </label>
+                    <button onclick="disableToken('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #555; color: white; cursor: pointer; font-size: 0.85em;">Disable</button>
+                    <button onclick="enableToken('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Enable</button>
+                    <button onclick="copyJoinLink('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #333; color: #64b5f6; cursor: pointer; font-size: 0.85em;">📋 Copy Link</button>
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('token-list').innerHTML =
+            `<div style="display: flex; flex-direction: column; gap: 12px;">${cards}</div>`;
+    }
 
-            const html = `<div style="display: flex; flex-direction: column; gap: 12px;">${cards}</div>`;
+    // Filter allTokens and re-render without refetching
+    function applyFilter() {
+        const search = document.getElementById('filter-search').value.trim().toLowerCase();
+        const filtered = allTokens.filter(t => {
+            if (search && !t.user_name.toLowerCase().includes(search) && !(t.user_email || '').toLowerCase().includes(search)) return false;
+            if (filterState.status === 'active' && !t.is_active) return false;
+            if (filterState.status === 'disabled' && t.is_active) return false;
+            if (filterState.role === 'admin' && !t.is_admin) return false;
+            if (filterState.role === 'standard' && t.is_admin) return false;
+            return true;
+        });
+        renderCards(filtered);
+        document.getElementById('filter-count').textContent =
+            filtered.length === allTokens.length
+                ? `${allTokens.length} token${allTokens.length !== 1 ? 's' : ''}`
+                : `${filtered.length} of ${allTokens.length} tokens`;
+    }
 
-            document.getElementById('token-list').innerHTML = html;
+    // Activate a chip and update filterState
+    function setChip(el) {
+        const group = el.dataset.group;
+        filterState[group] = el.dataset.value;
+        document.querySelectorAll(`.filter-chip[data-group="${group}"]`).forEach(chip => {
+            chip.classList.toggle('active', chip === el);
+        });
+        applyFilter();
+    }
+
+    // Toggle filter panel visibility
+    function toggleFilter() {
+        const panel = document.getElementById('filter-panel');
+        const btn = document.getElementById('filter-toggle-btn');
+        const opening = panel.style.display === 'none';
+        panel.style.display = opening ? 'block' : 'none';
+        btn.style.color = opening ? '#64b5f6' : '#aaa';
+        btn.style.borderColor = opening ? '#64b5f6' : '#444';
+        if (opening) document.getElementById('filter-search').focus();
+    }
+
+    // Fetch tokens from server
+    async function loadTokens() {
+        try {
+            const response = await fetch('/admin/tokens');
+            allTokens = await response.json();
+            applyFilter();
         } catch (error) {
             document.getElementById('token-list').innerHTML = `<p style="color: red;">Error loading tokens: ${error.message}</p>`;
         }
