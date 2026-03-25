@@ -31,7 +31,7 @@
     document.getElementById('createTokenBtn').addEventListener('click', async () => {
         const name = document.getElementById('newUserName').value.trim();
         const email = document.getElementById('newUserEmail').value.trim();
-        const isAdmin = document.getElementById('newUserIsAdmin').checked;
+        const is_admin = document.getElementById('newUserIsAdmin').checked;
 
         if (!name) {
             alert('User name is required');
@@ -42,11 +42,11 @@
             const response = await fetch('/admin/create-new-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userName: name, userEmail: email, is_admin: isAdmin })
+                body: JSON.stringify({ user_name: name, user_email: email, is_admin: is_admin })
             });
             const result = await response.json();
             if (result.success) {
-                alert(`New token created: ${result.token}`);
+                // alert(`New token created: ${result.token}`);
                 document.getElementById('newUserName').value = '';
                 document.getElementById('newUserEmail').value = '';
                 document.getElementById('newUserIsAdmin').checked = false;
@@ -73,7 +73,7 @@
                     <td><code>${t.token}</code></td>
                     <td>${t.use_count}</td>
                     <td>${t.is_active ? 'Yes' : 'No'}</td>
-                    <td><input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.id}', this.checked)" style="cursor: pointer;"></td>
+                    <td><input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.token}', this.checked)" style="cursor: pointer;"></td>
                     <td><button onclick="killToken('${t.token}')">Revoke</button></td>
                 </tr>
             `).join('');
@@ -99,12 +99,12 @@
 
 
     // Toggle admin status
-    async function toggleAdmin(id, isAdmin) {
+    async function toggleAdmin(token, is_admin) {
         try {
             const response = await fetch('/admin/update-admin-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, is_admin: isAdmin })
+                body: JSON.stringify({ token: token, is_admin: is_admin })
             });
             const result = await response.json();
             if (!result.success) {

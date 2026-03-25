@@ -223,9 +223,9 @@ app.get('/api/recent', async (c) => {
 app.post('/admin/create-new-user', async (c) => {
 	const token = generateToken(16); // Generate a random token for the new user
 	const body = await c.req.json();
-	const userName = body.userName as string;
-	const userEmail = body.userEmail as string;
-	const isAdmin = body.isAdmin as boolean;
+	const userName = body.user_name as string;
+	const userEmail = body.user_email as string;
+	const is_admin = body.is_admin as boolean;
 
 	if (!userName) {
 		return c.json({ success: false, error: 'User name is required' }, 400);
@@ -235,7 +235,7 @@ app.post('/admin/create-new-user', async (c) => {
 	await c.env.DB.prepare(`
 		INSERT INTO access_tokens (token, user_name, user_email, is_admin) 
 		VALUES (?, ?, ?, ?)
-	`).bind(token, userName, userEmail, isAdmin ? 1 : 0).run();
+	`).bind(token, userName, userEmail, is_admin ? 1 : 0).run();
 
 	return c.json({ success: true, token });
 });
@@ -251,7 +251,7 @@ const generateToken = (length = 8) => {
 // Admin endpoint to list access tokens
 app.get('/admin/tokens', async (c) => {
 	const { results } = await c.env.DB.prepare(
-		"SELECT id, user_name, user_email, token, use_count, is_active, created_at FROM access_tokens ORDER BY created_at DESC"
+		"SELECT token, user_name, user_email, use_count, is_active, is_admin, created_at FROM access_tokens ORDER BY created_at DESC"
 	).all();
 
 	return c.json(results);
@@ -259,16 +259,16 @@ app.get('/admin/tokens', async (c) => {
 // Admin endpoint to update admin status
 app.post('/admin/update-admin-status', async (c) => {
 	const body = await c.req.json();
-	const id = body.id as string;
-	const isAdmin = body.isAdmin as boolean;
+	const token = body.token as string;
+	const is_admin = body.is_admin as boolean;
 
-	if (!id) {
-		return c.json({ success: false, error: 'ID is required' }, 400);
+	if (!token) {
+		return c.json({ success: false, error: 'Token is required' }, 400);
 	}
 
 	await c.env.DB.prepare(
-		"UPDATE access_tokens SET is_admin = ? WHERE id = ?"
-	).bind(isAdmin ? 1 : 0, id).run();
+		"UPDATE access_tokens SET is_admin = ? WHERE token = ?"
+	).bind(is_admin ? 1 : 0, token).run();
 
 	return c.json({ success: true });
 });
