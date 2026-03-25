@@ -1,5 +1,9 @@
 /* style.part.css */
 
+.hidden {
+    display: none;
+}
+
 body {
       font-family: system-ui;
       background: #111;
