@@ -66,15 +66,8 @@ app.get('/admin', (c) => {
 
 })
 
-// upload a new file - private needs unique pin
-app.get('/newupload', (c) => {
-	const html =
-		sharedHead
-			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
-		newUpload
-
-	return c.html(html);
-})
+// /newupload is now merged into /send — redirect for any bookmarks
+app.get('/newupload', (c) => c.redirect('/send', 301))
 
 
 // The Upload Endpoint — requires a valid access token via Authorization: Bearer header
