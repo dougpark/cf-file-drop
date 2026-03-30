@@ -114,10 +114,11 @@ app.post('/upload', async (c) => {
 	}
 
 	// 4. Record the entry in D1 (including which token uploaded it)
+	const expiresAt = Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60; // 3 days from now
 	await c.env.DB.prepare(`
-    INSERT INTO file_log (slug, r2_key, original_filename, file_size_bytes, mime_type, sha256_hash, created_by_token)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(slug, r2_key, file.name, file.size, file.type, hashSum, uploadToken).run();
+    INSERT INTO file_log (slug, r2_key, original_filename, file_size_bytes, mime_type, sha256_hash, created_by_token, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(slug, r2_key, file.name, file.size, file.type, hashSum, uploadToken, expiresAt).run();
 
 	return c.json({
 		success: true,
@@ -186,7 +187,10 @@ app.get('/f/:slug', async (c) => {
 			.replace('{{slug}}', slug)
 			.replace('{{remaining}}', remaining.toString())
 			.replace('{{MAX_DOWNLOADS}}', MAX_DOWNLOADS.toString())
-			.replace('{{sender_name}}', `${file.sender_name}`);
+			.replace('{{sender_name}}', `${file.sender_name}`)
+			.replace('{{expires_at}}', file.expires_at
+				? new Date((file.expires_at as number) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+				: 'No expiry');
 	return c.html(html);
 });
 
@@ -266,7 +270,7 @@ app.get('/api/recent', async (c) => {
 	}
 
 	const { results } = await c.env.DB.prepare(`
-    SELECT slug, original_filename, uploaded_at, file_size_bytes 
+    SELECT slug, original_filename, uploaded_at, file_size_bytes, expires_at
     FROM file_log 
     WHERE deleted_at IS NULL AND created_by_token = ?
     ORDER BY uploaded_at DESC 

@@ -261,11 +261,18 @@
             list.innerHTML = files.map(f => {
                 const fullUrl = `${origin}/f/${f.slug}`;
                 const sizeKb = (f.file_size_bytes / 1024).toFixed(0);
+                const now = Math.floor(Date.now() / 1000);
+                const expired = f.expires_at && f.expires_at < now;
+                const expiryLabel = f.expires_at
+                    ? (expired
+                        ? `<span style="color:#f87171;">Expired</span>`
+                        : `Expires ${new Date(f.expires_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`)
+                    : '';
                 return `
                     <li style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
                         <div style="flex:1;min-width:0;">
                             <div style="color:white;font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.original_filename}</div>
-                            <div style="color:#555;font-size:0.75em;margin-top:2px;">${new Date(f.uploaded_at * 1000).toLocaleDateString()} &middot; ${sizeKb} KB</div>
+                            <div style="color:#555;font-size:0.75em;margin-top:2px;">${new Date(f.uploaded_at * 1000).toLocaleDateString()} &middot; ${sizeKb} KB &middot; ${expiryLabel}</div>
                         </div>
                         <div style="display:flex;gap:6px;flex-shrink:0;">
                             <button class="btn copy-btn" onclick="copyToClipboard('${fullUrl}', this)">Copy Link</button>
