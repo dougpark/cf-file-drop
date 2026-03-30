@@ -323,6 +323,46 @@ body {
 .meta-row .meta-label { color: #888; }
 .meta-row .meta-value { color: white; }
 
+/* --- Icon row (large emoji + text block, used in sender/file cards) --- */
+.icon-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.icon-row .row-icon  { font-size: 1.8em; flex-shrink: 0; }
+.icon-row .row-title {
+    color: white;
+    font-weight: 600;
+    font-size: 0.95em;
+    word-break: break-all;
+}
+.icon-row .row-sub   { color: #888; font-size: 0.8em; margin-top: 2px; }
+.icon-row .row-name  { font-size: 1.1em; color: #64b5f6; font-weight: 600; }
+
+/* --- Large primary download button --- */
+.btn-download {
+    display: block;
+    text-align: center;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: #0070f3;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9em;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+}
+.btn-download:hover { background: #0058cc; }
+
+/* --- Footnote (small centred muted text, e.g. download count / expiry) --- */
+.footnote {
+    text-align: center;
+    color: #555;
+    font-size: 0.78em;
+}
+
 /* ============================================================
    END SHARED PAGE COMPONENTS
    ============================================================ */
