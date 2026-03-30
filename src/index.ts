@@ -387,6 +387,28 @@ app.get('/admin/tokens', async (c) => {
 
 	return c.json(results);
 });
+
+// Admin endpoint: metadata-only file list for a sender token (no r2_key, no download URLs)
+app.get('/admin/user-files/:token', async (c) => {
+	const senderToken = c.req.param('token');
+
+	const { results } = await c.env.DB.prepare(`
+		SELECT
+			slug,
+			original_filename,
+			file_size_bytes,
+			mime_type,
+			uploaded_at,
+			download_count,
+			last_downloaded_at,
+			deleted_at
+		FROM file_log
+		WHERE created_by_token = ?
+		ORDER BY uploaded_at DESC
+	`).bind(senderToken).all();
+
+	return c.json(results);
+});
 // Admin endpoint to update admin status
 app.post('/admin/update-admin-status', async (c) => {
 	const body = await c.req.json();
