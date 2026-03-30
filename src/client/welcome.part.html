@@ -1,13 +1,58 @@
-<!-- maxdownload.part.html -->
+<!-- welcome.part.html -->
 
 <body>
-    <h1>File Drop</h1>
 
-    <div class="card">
-        <div style="font-size:3em;">🚫</div>
-        <h2>Welcome</h2>
-
-        <p style="color:#888;">Welcome to drop.d11cloud.com! \
-            Please contact the admin to receive your access link.</p>
+    <!-- Top Nav Bar -->
+    <div
+        style="position:sticky;top:0;z-index:100;background:#111;border-bottom:1px solid #333;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.4em;">📂</span>
+            <span style="color:white;font-weight:700;font-size:1em;letter-spacing:0.5px;">File Drop</span>
+        </div>
     </div>
+
+    <!-- Page Header -->
+    <div
+        style="padding:24px 16px 8px 16px;max-width:600px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;">
+        <h1 style="margin:0 0 4px 0;font-size:1.5em;color:white;font-weight:700;">Welcome</h1>
+        <p style="margin:0;color:#888;font-size:0.85em;">Secure file sharing, powered by Cloudflare.</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:600px;margin:0 auto;padding:12px 16px 32px 16px;">
+
+        <!-- Access Required card -->
+        <div
+            style="background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;text-align:center;">
+            <span style="font-size:2em;">🔒</span>
+            <span style="font-size:1.1em;font-weight:bold;color:white;">Access Required</span>
+            <div style="padding-top:8px;border-top:1px solid #333;">
+                <p style="color:#888;font-size:0.85em;margin:0;">
+                    This is a private file sharing service.<br>
+                    Please contact the admin to receive your personal access link.
+                </p>
+            </div>
+        </div>
+
+        <!-- About card -->
+        <div
+            style="background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;">
+            <span style="font-size:1.1em;font-weight:bold;color:white;">How it works</span>
+            <div style="padding-top:4px;border-top:1px solid #333;display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;align-items:flex-start;gap:10px;font-size:0.85em;color:#888;">
+                    <span style="font-size:1.3em;flex-shrink:0;">📤</span>
+                    <span>Authorised users upload files and get a private share link.</span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:10px;font-size:0.85em;color:#888;">
+                    <span style="font-size:1.3em;flex-shrink:0;">🔗</span>
+                    <span>The link is sent directly to the recipient — no account needed to download.</span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:10px;font-size:0.85em;color:#888;">
+                    <span style="font-size:1.3em;flex-shrink:0;">⏳</span>
+                    <span>Links expire automatically after 3 days to keep storage clean.</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
 </body>
