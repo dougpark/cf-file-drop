@@ -45,7 +45,7 @@ app.get('/', (c) => {
 })
 
 // join page - public, but with a unique token in the URL to prevent random people from stumbling on it. This is where you would share the "join" link with your friends or family so they can upload files without needing the admin password. The token can be a simple random string that you generate and share privately.
-app.get('/join', (c) => {
+app.get('/send', (c) => {
 	const html =
 		sharedHead
 			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
