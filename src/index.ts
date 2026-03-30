@@ -142,8 +142,12 @@ app.get('/f/:slug', async (c) => {
 	const MAX_DOWNLOADS = 3; // Your "Reasonable" limit
 
 	const file = await c.env.DB.prepare(
-		"SELECT original_filename, file_size_bytes, download_count,\
-		expires_at, is_single_use, password_hash FROM file_log WHERE slug = ? AND deleted_at IS NULL"
+		`SELECT fl.original_filename, fl.file_size_bytes, fl.download_count,
+		fl.expires_at, fl.is_single_use, fl.password_hash,
+		COALESCE(at.user_name, 'Someone') AS sender_name
+		FROM file_log fl
+		LEFT JOIN access_tokens at ON at.token = fl.created_by_token
+		WHERE fl.slug = ? AND fl.deleted_at IS NULL`
 	).bind(slug).first();
 
 	if (!file) return c.text('File not found.', 404);
@@ -188,7 +192,8 @@ app.get('/f/:slug', async (c) => {
 			.replace('{{file_size}}', `${(Number(file.file_size_bytes) / 1024 / 1024).toFixed(2)} MB`)
 			.replace('{{slug}}', slug)
 			.replace('{{remaining}}', remaining.toString())
-			.replace('{{MAX_DOWNLOADS}}', MAX_DOWNLOADS.toString());
+			.replace('{{MAX_DOWNLOADS}}', MAX_DOWNLOADS.toString())
+			.replace('{{sender_name}}', `${file.sender_name}`);
 	return c.html(html);
 });
 
