@@ -270,7 +270,7 @@ app.get('/api/recent', async (c) => {
     FROM file_log 
     WHERE deleted_at IS NULL AND created_by_token = ?
     ORDER BY uploaded_at DESC 
-    LIMIT 10
+    LIMIT 50
   `).bind(recentToken).all();
 
 	return c.json(results);
