@@ -35,6 +35,24 @@ CREATE VIRTUAL TABLE IF NOT EXISTS file_search_idx USING fts5(
 -- SELECT * FROM file_log WHERE slug IN (SELECT slug FROM file_search_idx WHERE file_search_idx MATCH 'tax documents');
 
 
+-- Per-download audit log. One row per download event.
+CREATE TABLE IF NOT EXISTS download_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL,                     -- which file was downloaded
+    created_by_token TEXT,                  -- sender's access token
+    downloaded_at INTEGER NOT NULL,         -- Unix timestamp
+    ip_address TEXT,                        -- SHA-256 prefix of CF-Connecting-IP (hashed for privacy)
+    country TEXT,                           -- CF-IPCountry header (free from Cloudflare)
+    user_agent TEXT,                        -- Full UA string
+    device_type TEXT,                       -- 'mobile' | 'tablet' | 'desktop' | 'bot' | 'unknown'
+    referer TEXT,                           -- Referer header
+    cf_ray TEXT,                            -- Cloudflare Ray ID for log correlation
+    FOREIGN KEY (slug) REFERENCES file_log(slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_download_log_slug ON download_log(slug);
+CREATE INDEX IF NOT EXISTS idx_download_log_downloaded_at ON download_log(downloaded_at);
+
 -- User Access Tokens for upload tracking and user management
 CREATE TABLE IF NOT EXISTS access_tokens (
     token TEXT PRIMARY KEY,

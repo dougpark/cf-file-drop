@@ -197,11 +197,11 @@ app.get('/f/:slug', async (c) => {
 	return c.html(html);
 });
 
-// 2. The Actual Download Stream - public, but with all the checks in place from the landing page
+// 2. The Actual Download Stream - public
 app.get('/f/:slug/raw', async (c) => {
 	const slug = c.req.param('slug');
 	const file = await c.env.DB.prepare(
-		"SELECT r2_key, original_filename FROM file_log WHERE slug = ?"
+		"SELECT r2_key, original_filename, created_by_token FROM file_log WHERE slug = ?"
 	).bind(slug).first();
 
 	if (!file) return c.text('Not found', 404);
@@ -209,12 +209,42 @@ app.get('/f/:slug/raw', async (c) => {
 	const object = await c.env.BUCKET.get(file.r2_key as string);
 	if (!object) return c.text('File missing', 404);
 
+	const now = Math.floor(Date.now() / 1000);
 
+	// Collect Cloudflare request metadata for the audit log
+	const ua = c.req.header('User-Agent') ?? null;
+	const country = c.req.header('CF-IPCountry') ?? null;
+	const cfRay = c.req.header('CF-Ray') ?? null;
+	const referer = c.req.header('Referer') ?? null;
 
-	// 5. Update Metrics (Download Count & Last Downloaded)
-	await c.env.DB.prepare(
-		"UPDATE file_log SET download_count = download_count + 1, last_downloaded_at = ? WHERE slug = ?"
-	).bind(Math.floor(Date.now() / 1000), slug).run();
+	// Hash the IP for privacy — we keep correlation ability without storing raw IPs
+	const rawIp = c.req.header('CF-Connecting-IP') ?? null;
+	let ipHash: string | null = null;
+	if (rawIp) {
+		const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawIp));
+		ipHash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+	}
+
+	// Derive a simple device type from the User-Agent
+	let deviceType = 'unknown';
+	if (ua) {
+		const u = ua.toLowerCase();
+		if (/bot|crawl|spider|slurp|facebookexternalhit/.test(u)) deviceType = 'bot';
+		else if (/ipad|tablet|playbook|silk/.test(u)) deviceType = 'tablet';
+		else if (/mobile|iphone|android|ipod|blackberry|iemobile|opera mini/.test(u)) deviceType = 'mobile';
+		else deviceType = 'desktop';
+	}
+
+	// Run both DB writes in a batch
+	await c.env.DB.batch([
+		c.env.DB.prepare(
+			"UPDATE file_log SET download_count = download_count + 1, last_downloaded_at = ? WHERE slug = ?"
+		).bind(now, slug),
+		c.env.DB.prepare(
+			`INSERT INTO download_log (slug, created_by_token, downloaded_at, ip_address, country, user_agent, device_type, referer, cf_ray)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		).bind(slug, file.created_by_token ?? null, now, ipHash, country, ua, deviceType, referer, cfRay),
+	]);
 
 	const headers = new Headers();
 	object.writeHttpMetadata(headers);
@@ -324,6 +354,30 @@ const generateToken = (length = 8) => {
 	crypto.getRandomValues(array);
 	return Array.from(array, (byte) => chars[byte % chars.length]).join('');
 };
+
+// Admin endpoint to view the download audit log for a specific file
+app.get('/admin/download-log/:slug', async (c) => {
+	const slug = c.req.param('slug');
+
+	const { results } = await c.env.DB.prepare(`
+		SELECT
+			dl.id,
+			dl.downloaded_at,
+			dl.country,
+			dl.device_type,
+			dl.user_agent,
+			dl.referer,
+			dl.ip_address,
+			dl.cf_ray,
+			COALESCE(at.user_name, 'Unknown sender') AS sender_name
+		FROM download_log dl
+		LEFT JOIN access_tokens at ON at.token = dl.created_by_token
+		WHERE dl.slug = ?
+		ORDER BY dl.downloaded_at DESC
+	`).bind(slug).all();
+
+	return c.json(results);
+});
 
 // Admin endpoint to list access tokens
 app.get('/admin/tokens', async (c) => {
