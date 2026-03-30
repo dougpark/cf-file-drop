@@ -326,6 +326,31 @@ app.get('/api/user-info', async (c) => {
 	return c.json({ success: true, user });
 });
 
+// Sender-facing download activity for their own file (public-safe fields only)
+app.get('/api/file-activity/:slug', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const callerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!callerToken) return c.json({ error: 'Unauthorized' }, 401);
+
+	const slug = c.req.param('slug');
+
+	// Verify the file belongs to the calling token
+	const owner = await c.env.DB.prepare(
+		'SELECT slug FROM file_log WHERE slug = ? AND created_by_token = ? AND deleted_at IS NULL'
+	).bind(slug, callerToken).first();
+	if (!owner) return c.json({ error: 'Not found' }, 404);
+
+	// Return only sender-safe columns — no IP, no UA, no CF Ray
+	const { results } = await c.env.DB.prepare(`
+		SELECT downloaded_at, country, device_type
+		FROM download_log
+		WHERE slug = ?
+		ORDER BY downloaded_at DESC
+	`).bind(slug).all();
+
+	return c.json(results);
+});
+
 // admin create-new-user endpoint
 app.post('/admin/create-new-user', async (c) => {
 	const token = generateToken(16); // Generate a random token for the new user
