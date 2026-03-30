@@ -158,4 +158,154 @@ body {
     .download-btn:hover {
       background: #444;
     }
-  
+
+
+/* ============================================================
+   SHARED PAGE COMPONENTS
+   Used across all HTML partials in the project.
+   Defines the common nav bar, page header, content wrapper,
+   card, button variants, and status badge patterns.
+   ============================================================ */
+
+/* --- Reset --- */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* --- Top navigation bar --- */
+.top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #111;
+    border-bottom: 1px solid #333;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.top-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.top-nav-brand .nav-icon  { font-size: 1.4em; }
+.top-nav-brand .nav-title {
+    color: white;
+    font-weight: 700;
+    font-size: 1em;
+    letter-spacing: 0.5px;
+}
+
+/* --- Centred page header (title + subtitle below nav) --- */
+.page-header {
+    padding: 24px 16px 8px 16px;
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.page-header h1 {
+    margin: 0 0 4px 0;
+    font-size: 1.5em;
+    color: white;
+    font-weight: 700;
+}
+.page-header p {
+    margin: 0;
+    color: #888;
+    font-size: 0.85em;
+}
+
+/* --- Vertical card stack (main content area) --- */
+.page-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 12px 16px 32px 16px;
+    width: 100%;
+}
+
+/* --- Card --- */
+.page-card {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.page-card-title {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: white;
+}
+.page-card-body {
+    padding-top: 4px;
+    border-top: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Card colour modifiers */
+.page-card.card-warning { border-color: #4a3000; }
+.page-card.card-danger  { border-color: #4a1a1a; }
+.page-card.card-info    { border-color: #1a2a4a; }
+.page-card.card-success { border-color: #1a4a2a; }
+
+/* --- Status icon block (centred emoji + heading inside a card) --- */
+.status-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    text-align: center;
+}
+.status-block .status-icon  { font-size: 2.5em; }
+.status-block .status-title {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: white;
+    margin: 0;
+}
+.status-block .status-body  {
+    color: #888;
+    font-size: 0.85em;
+    margin: 0;
+}
+
+/* --- Badge --- */
+.badge {
+    font-size: 0.7em;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.badge-admin { background: #1a2a4a; color: #64b5f6; }
+
+/* --- Button variants (extend existing .btn base) --- */
+.btn-primary   { background: #007AFF; color: white; border: none; }
+.btn-primary:hover   { background: #0066dd; }
+.btn-secondary { background: #333; color: white; border: 1px solid #444; }
+.btn-secondary:hover { background: #444; }
+.btn-success   { background: #1a3a1a; color: #4caf50; border: 1px solid #2a5a2a; }
+.btn-success:hover   { background: #1e4a1e; }
+.btn-danger    { background: #3a1a1a; color: #f44336; border: 1px solid #5a2a2a; }
+.btn-danger:hover    { background: #4a1e1e; }
+.btn-accent    { background: #1a2a4a; color: #64b5f6; border: 1px solid #2a3a5a; }
+.btn-accent:hover    { background: #1e3a5a; }
+
+/* --- Meta row (key: value pairs inside a card body) --- */
+.meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85em;
+}
+.meta-row .meta-label { color: #888; }
+.meta-row .meta-value { color: white; }

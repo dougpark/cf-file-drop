@@ -1,12 +1,33 @@
 <!-- maxdownload.part.html -->
 
 <body>
-    <h1>File Drop</h1>
 
-    <div class="card">
-        <div style="font-size:3em;">🚫</div>
-        <h2>Link Expired</h2>
-        <h3>{{original_filename}}</h3>
-        <p style="color:#888;">This file reached its maximum download limit.</p>
+    <!-- Top Nav Bar -->
+    <div class="top-nav">
+        <div class="top-nav-brand">
+            <span class="nav-icon">📂</span>
+            <span class="nav-title">File Drop</span>
+        </div>
     </div>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Download Limit Reached</h1>
+        <p>This link is no longer available for download.</p>
+    </div>
+
+    <div class="page-content">
+
+        <!-- Status card -->
+        <div class="page-card card-danger" style="text-align:center;">
+            <div class="status-block">
+                <span class="status-icon">🚫</span>
+                <p class="status-title">{{original_filename}}</p>
+                <p class="status-body">This file has reached its maximum number of downloads.<br>Please contact the
+                    sender if you still need access.</p>
+            </div>
+        </div>
+
+    </div>
+
 </body>
