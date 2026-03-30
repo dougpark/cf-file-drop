@@ -248,6 +248,29 @@ app.get('/api/recent', async (c) => {
 	return c.json(results);
 });
 
+// Stats endpoint — returns upload count, storage used, and last activity for the calling user's token
+app.get('/api/stats', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const statsToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!statsToken) return c.json({ error: 'Unauthorized' }, 401);
+
+	const tokenRecord = await c.env.DB.prepare(
+		"SELECT token FROM access_tokens WHERE token = ? AND is_active = 1"
+	).bind(statsToken).first();
+	if (!tokenRecord) return c.json({ error: 'Unauthorized' }, 401);
+
+	const row = await c.env.DB.prepare(`
+		SELECT
+			COUNT(*) AS file_count,
+			COALESCE(SUM(file_size_bytes), 0) AS total_bytes,
+			MAX(COALESCE(uploaded_at, 0), COALESCE(last_downloaded_at, 0)) AS last_activity
+		FROM file_log
+		WHERE created_by_token = ? AND deleted_at IS NULL
+	`).bind(statsToken).first();
+
+	return c.json(row);
+});
+
 // user-info endpoint - private, needs token
 app.get('/api/user-info', async (c) => {
 

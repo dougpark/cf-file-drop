@@ -139,9 +139,8 @@
                 if (data.user.is_admin) {
                     document.getElementById('admin-card').classList.remove('hidden');
                 }
+                loadStats(token);
             } else {
-                document.getElementById('unauthorized').classList.remove('hidden');
-                notify('Invalid join link. Please request a new one.', 'error');
             }
         });
 
@@ -163,6 +162,7 @@
                     if (data.user.is_admin) {
                         document.getElementById('admin-card').classList.remove('hidden');
                     }
+                    loadStats(storedToken);
                 } else {
                     localStorage.removeItem('d11_token');
                     document.getElementById('unauthorized').classList.remove('hidden');
@@ -180,6 +180,27 @@
         const t = localStorage.getItem('d11_token');
         window.location.href = t ? `/newupload?t=${t}` : '/newupload';
     });
+
+    async function loadStats(t) {
+        try {
+            const res = await fetch('/api/stats', {
+                headers: { 'Authorization': `Bearer ${t}` }
+            });
+            const s = await res.json();
+            document.getElementById('totalUploads').textContent = s.file_count ?? 0;
+            const mb = (s.total_bytes ?? 0) / 1024 / 1024;
+            document.getElementById('totalStorage').textContent =
+                mb >= 1 ? `${mb.toFixed(1)} MB` : `${((s.total_bytes ?? 0) / 1024).toFixed(1)} KB`;
+            document.getElementById('lastActivity').textContent =
+                s.last_activity
+                    ? new Date(s.last_activity * 1000).toLocaleDateString()
+                    : 'Never';
+        } catch {
+            ['totalUploads', 'totalStorage', 'lastActivity'].forEach(
+                id => document.getElementById(id).textContent = '—'
+            );
+        }
+    }
 </script>
 
 </html>
