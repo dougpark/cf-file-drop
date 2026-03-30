@@ -534,4 +534,55 @@ app.get('/hello', async (c) => {
 	return c.text(`Hello from Cloudflare Workers!`)
 })
 
-export default app
+// Scheduled cleanup: runs nightly at 02:00 UTC
+// Phase 1 — soft-delete expired D1 rows (expires_at < now - 24h grace period)
+// Phase 2 — hard-delete R2 objects whose every file_log row is now deleted
+async function runCleanup(env: Bindings): Promise<void> {
+	const gracePeriod = 24 * 60 * 60; // 24 hours in seconds
+	const cutoff = Math.floor(Date.now() / 1000) - gracePeriod;
+
+	// 1. Collect r2_keys of rows about to be soft-deleted
+	const expired = await env.DB.prepare(
+		`SELECT r2_key FROM file_log
+		WHERE deleted_at IS NULL AND expires_at IS NOT NULL AND expires_at < ?`
+	).bind(cutoff).all();
+
+	if (expired.results.length === 0) {
+		console.log('cleanup: no expired files found');
+		return;
+	}
+
+	// 2. Soft-delete those rows
+	const now = Math.floor(Date.now() / 1000);
+	await env.DB.prepare(
+		`UPDATE file_log SET deleted_at = ?
+		WHERE deleted_at IS NULL AND expires_at IS NOT NULL AND expires_at < ?`
+	).bind(now, cutoff).run();
+
+	console.log(`cleanup: soft-deleted ${expired.results.length} rows`);
+
+	// 3. For each affected r2_key, only delete the R2 object if ALL rows
+	//    referencing that key are now deleted (deduplication safety check)
+	const uniqueKeys = [...new Set(expired.results.map((r: Record<string, unknown>) => r.r2_key as string))];
+	let r2Deleted = 0;
+
+	for (const key of uniqueKeys) {
+		const active = await env.DB.prepare(
+			`SELECT COUNT(*) AS cnt FROM file_log WHERE r2_key = ? AND deleted_at IS NULL`
+		).bind(key).first<{ cnt: number }>();
+
+		if ((active?.cnt ?? 1) === 0) {
+			await env.BUCKET.delete(key);
+			r2Deleted++;
+		}
+	}
+
+	console.log(`cleanup: deleted ${r2Deleted} R2 objects`);
+}
+
+export default {
+	fetch: app.fetch,
+	async scheduled(_controller: ScheduledController, env: Bindings, ctx: ExecutionContext) {
+		ctx.waitUntil(runCleanup(env));
+	},
+};
