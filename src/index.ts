@@ -11,9 +11,9 @@ import sharedHead from './client/head.part.html'
 // @ts-ignore
 import sharedStyle from './client/style.part.css'
 // @ts-ignore
-import joinPage from './client/joinPage.part.html'
+import sendPage from './client/sendPage.part.html'
 // @ts-ignore
-import newUpload from './client/newupload.part.html'
+import welcomePage from './client/welcome.part.html'
 // @ts-ignore
 import adminPage from './client/adminpage.part.html'
 // @ts-ignore
@@ -37,8 +37,7 @@ app.get('/', (c) => {
 	const html =
 		sharedHead
 			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
-		"Welcome to drop.d11cloud.com! \
-		Please contact the admin to receive your access link."
+		welcomePage
 
 	return c.html(html);
 
@@ -49,7 +48,7 @@ app.get('/send', (c) => {
 	const html =
 		sharedHead
 			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
-		joinPage
+		sendPage
 
 	return c.html(html);
 
