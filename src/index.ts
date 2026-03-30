@@ -65,10 +65,6 @@ app.get('/admin', (c) => {
 
 })
 
-// /newupload is now merged into /send — redirect for any bookmarks
-app.get('/newupload', (c) => c.redirect('/send', 301))
-
-
 // The Upload Endpoint — requires a valid access token via Authorization: Bearer header
 app.post('/upload', async (c) => {
 
