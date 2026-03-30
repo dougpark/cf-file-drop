@@ -175,9 +175,10 @@
     }
 
 
-    // Handle file upload
+    // Handle file upload — pass the token so /newupload can authenticate
     document.getElementById('uploadBtn').addEventListener('click', async () => {
-        window.location.href = '/newupload';
+        const t = localStorage.getItem('d11_token');
+        window.location.href = t ? `/newupload?t=${t}` : '/newupload';
     });
 </script>
 

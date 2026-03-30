@@ -77,17 +77,24 @@ app.get('/newupload', (c) => {
 })
 
 
-// The Upload Endpoint (for your iPhone/macOS) - private, needs password (or unique pin)
+// The Upload Endpoint — requires a valid access token via Authorization: Bearer header
 app.post('/upload', async (c) => {
+
+	// Validate the access token
+	const authHeader = c.req.header('Authorization');
+	const uploadToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!uploadToken) {
+		return c.json({ success: false, error: 'Unauthorized: Token required' }, 401);
+	}
+	const tokenRecord = await c.env.DB.prepare(
+		"SELECT token FROM access_tokens WHERE token = ? AND is_active = 1"
+	).bind(uploadToken).first();
+	if (!tokenRecord) {
+		return c.json({ success: false, error: 'Unauthorized: Invalid or inactive token' }, 401);
+	}
 
 	const body = await c.req.parseBody();
 	const file = body['file'] as File;
-	const password = body['password'] as string; // Look for the password
-
-	// Check the password against the secret we set
-	if (password !== c.env.UPLOAD_PASSWORD) {
-		return c.json({ success: false, error: 'Unauthorized: Invalid Admin Password' }, 401);
-	}
 
 	if (!file) return c.text('No file uploaded', 400);
 
@@ -113,11 +120,11 @@ app.post('/upload', async (c) => {
 		});
 	}
 
-	// 4. Record the entry in D1
+	// 4. Record the entry in D1 (including which token uploaded it)
 	await c.env.DB.prepare(`
-    INSERT INTO file_log (slug, r2_key, original_filename, file_size_bytes, mime_type, sha256_hash)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).bind(slug, r2_key, file.name, file.size, file.type, hashSum).run();
+    INSERT INTO file_log (slug, r2_key, original_filename, file_size_bytes, mime_type, sha256_hash, created_by_token)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(slug, r2_key, file.name, file.size, file.type, hashSum, uploadToken).run();
 
 	return c.json({
 		success: true,
@@ -216,17 +223,27 @@ app.get('/manifest.json', (c) => {
 	return c.json(require('../public/manifest.json')) // Or just paste the JSON here
 })
 
-// An API Endpoint to List Recent Uploads - private, needs password (or unique pin)
-// list recent uploads (for demo purposes) - In a real app, you'd want pagination and better security around this!
+// An API Endpoint to List Recent Uploads — scoped to the calling user's token
 app.get('/api/recent', async (c) => {
-	// Query the last 5 non-deleted files
+	const authHeader = c.req.header('Authorization');
+	const recentToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!recentToken) {
+		return c.json({ error: 'Unauthorized' }, 401);
+	}
+	const tokenRecord = await c.env.DB.prepare(
+		"SELECT token FROM access_tokens WHERE token = ? AND is_active = 1"
+	).bind(recentToken).first();
+	if (!tokenRecord) {
+		return c.json({ error: 'Unauthorized' }, 401);
+	}
+
 	const { results } = await c.env.DB.prepare(`
     SELECT slug, original_filename, uploaded_at, file_size_bytes 
     FROM file_log 
-    WHERE deleted_at IS NULL 
+    WHERE deleted_at IS NULL AND created_by_token = ?
     ORDER BY uploaded_at DESC 
-    LIMIT 5
-  `).all();
+    LIMIT 10
+  `).bind(recentToken).all();
 
 	return c.json(results);
 });

@@ -140,7 +140,13 @@
             });
             const result = await response.json();
             if (result.success) {
-                notify('Token created successfully', 'success');
+                const joinUrl = `${window.location.origin}/join?t=${result.token}`;
+                // Show the join link so the admin can copy and send it
+                const linkBox = document.createElement('div');
+                linkBox.style.cssText = 'margin-top:10px;padding:10px;background:#111;border:1px solid #333;border-radius:6px;font-size:0.8em;word-break:break-all;';
+                linkBox.innerHTML = `<span style='color:#888;display:block;margin-bottom:4px;'>Join link for ${name}:</span><code style='color:#64b5f6;'>${joinUrl}</code><br><button onclick="navigator.clipboard.writeText('${joinUrl}').then(()=>{this.innerText='Copied!';setTimeout(()=>this.innerText='Copy Link',2000)})" style='margin-top:6px;padding:4px 10px;border-radius:6px;border:none;background:#0070f3;color:white;cursor:pointer;font-size:0.85em;'>Copy Link</button>`;
+                document.getElementById('create-new-user').appendChild(linkBox);
+                notify('Token created — copy the join link above', 'success');
                 document.getElementById('newUserName').value = '';
                 document.getElementById('newUserEmail').value = '';
                 document.getElementById('newUserIsAdmin').checked = false;
