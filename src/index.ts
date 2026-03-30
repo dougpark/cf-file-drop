@@ -116,8 +116,8 @@ app.post('/upload', async (c) => {
 	// 4. Record the entry in D1 (including which token uploaded it)
 	const expiresAt = Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60; // 3 days from now
 	await c.env.DB.prepare(`
-    INSERT INTO file_log (slug, r2_key, original_filename, file_size_bytes, mime_type, sha256_hash, created_by_token, expires_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO file_log (slug, r2_key, original_filename, file_size_bytes, mime_type, sha256_hash, created_by_token, expires_at, max_downloads)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 3)
   `).bind(slug, r2_key, file.name, file.size, file.type, hashSum, uploadToken, expiresAt).run();
 
 	return c.json({
@@ -133,11 +133,11 @@ app.post('/upload', async (c) => {
 // 1. The Public Landing Page - public
 app.get('/f/:slug', async (c) => {
 	const slug = c.req.param('slug');
-	const MAX_DOWNLOADS = 3; // Your "Reasonable" limit
 
 	const file = await c.env.DB.prepare(
 		`SELECT fl.original_filename, fl.file_size_bytes, fl.download_count,
 		fl.expires_at, fl.is_single_use, fl.password_hash,
+		COALESCE(fl.max_downloads, 3) AS max_downloads,
 		COALESCE(at.user_name, 'Someone') AS sender_name
 		FROM file_log fl
 		LEFT JOIN access_tokens at ON at.token = fl.created_by_token
@@ -164,7 +164,8 @@ app.get('/f/:slug', async (c) => {
 	}
 
 	// Check if they've hit the limit
-	const remaining = MAX_DOWNLOADS - (file.download_count as number);
+	const fileMaxDownloads = file.max_downloads as number;
+	const remaining = fileMaxDownloads - (file.download_count as number);
 
 	if (remaining <= 0) {
 		// build the max download page from parts
@@ -186,7 +187,7 @@ app.get('/f/:slug', async (c) => {
 			.replace('{{file_size}}', `${(Number(file.file_size_bytes) / 1024 / 1024).toFixed(2)} MB`)
 			.replace('{{slug}}', slug)
 			.replace('{{remaining}}', remaining.toString())
-			.replace('{{MAX_DOWNLOADS}}', MAX_DOWNLOADS.toString())
+			.replace('{{MAX_DOWNLOADS}}', fileMaxDownloads.toString())
 			.replace('{{sender_name}}', `${file.sender_name}`)
 			.replace('{{expires_at}}', file.expires_at
 				? new Date((file.expires_at as number) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -270,7 +271,8 @@ app.get('/api/recent', async (c) => {
 	}
 
 	const { results } = await c.env.DB.prepare(`
-    SELECT slug, original_filename, uploaded_at, file_size_bytes, expires_at
+    SELECT slug, original_filename, uploaded_at, file_size_bytes, expires_at, download_count,
+           COALESCE(max_downloads, 3) AS max_downloads
     FROM file_log 
     WHERE deleted_at IS NULL AND created_by_token = ?
     ORDER BY uploaded_at DESC 
@@ -321,6 +323,54 @@ app.get('/api/user-info', async (c) => {
 	}
 
 	return c.json({ success: true, user });
+});
+
+// Sender: extend a file's expiry by 3 days from today
+app.post('/api/extend-expiry', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const callerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!callerToken) return c.json({ error: 'Unauthorized' }, 401);
+
+	const { slug } = await c.req.json();
+	if (!slug) return c.json({ error: 'slug required' }, 400);
+
+	const owner = await c.env.DB.prepare(
+		'SELECT slug FROM file_log WHERE slug = ? AND created_by_token = ? AND deleted_at IS NULL'
+	).bind(slug, callerToken).first();
+	if (!owner) return c.json({ error: 'Not found' }, 404);
+
+	const newExpiry = Math.floor(Date.now() / 1000) + 3 * 24 * 60 * 60;
+	await c.env.DB.prepare(
+		'UPDATE file_log SET expires_at = ? WHERE slug = ?'
+	).bind(newExpiry, slug).run();
+
+	return c.json({ success: true, expires_at: newExpiry });
+});
+
+// Sender: add 3 more downloads to a file's limit
+app.post('/api/extend-downloads', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const callerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!callerToken) return c.json({ error: 'Unauthorized' }, 401);
+
+	const { slug } = await c.req.json();
+	if (!slug) return c.json({ error: 'slug required' }, 400);
+
+	const owner = await c.env.DB.prepare(
+		'SELECT slug FROM file_log WHERE slug = ? AND created_by_token = ? AND deleted_at IS NULL'
+	).bind(slug, callerToken).first();
+	if (!owner) return c.json({ error: 'Not found' }, 404);
+
+	// Cap at download_count + 3 so repeating clicks never grants more than 3 remaining
+	await c.env.DB.prepare(
+		'UPDATE file_log SET max_downloads = download_count + 3 WHERE slug = ?'
+	).bind(slug).run();
+
+	const updated = await c.env.DB.prepare(
+		'SELECT max_downloads, download_count FROM file_log WHERE slug = ?'
+	).bind(slug).first();
+
+	return c.json({ success: true, max_downloads: updated?.max_downloads, download_count: updated?.download_count });
 });
 
 // Sender-facing download activity for their own file (public-safe fields only)

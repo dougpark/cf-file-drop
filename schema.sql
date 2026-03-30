@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS file_log (
     uploaded_at INTEGER DEFAULT (strftime('%s','now')), -- Unix timestamp, Upload time, Consistent Epoch storage
     deleted_at INTEGER,                  -- Unix timestamp allows soft deletes
     created_by_token TEXT,              -- Track which access token was used for upload
-    receiver_name TEXT                 -- Optional field to track intended recipient
+    receiver_name TEXT,                 -- Optional field to track intended recipient
+    max_downloads INTEGER NOT NULL DEFAULT 3  -- Per-file download limit (sender can extend)
 );
 
 -- Index for faster searching by filename

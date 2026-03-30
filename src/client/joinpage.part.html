@@ -263,21 +263,27 @@
                 const sizeKb = (f.file_size_bytes / 1024).toFixed(0);
                 const now = Math.floor(Date.now() / 1000);
                 const expired = f.expires_at && f.expires_at < now;
-                const expiryLabel = f.expires_at
+                const expiryText = f.expires_at
                     ? (expired
-                        ? `<span style="color:#f87171;">Expired</span>`
-                        : `Expires ${new Date(f.expires_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`)
-                    : '';
+                        ? `<span id="expiry-${f.slug}" style="color:#f87171;">Expired</span>`
+                        : `<span id="expiry-${f.slug}">Expires ${new Date(f.expires_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>`)
+                    : `<span id="expiry-${f.slug}"></span>`;
+                const dlCount = f.download_count ?? 0;
+                const dlMax = f.max_downloads ?? 3;
                 return `
-                    <li style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                        <div style="flex:1;min-width:0;">
-                            <div style="color:white;font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.original_filename}</div>
-                            <div style="color:#555;font-size:0.75em;margin-top:2px;">${new Date(f.uploaded_at * 1000).toLocaleDateString()} &middot; ${sizeKb} KB &middot; ${expiryLabel}</div>
+                    <li style="background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;">
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+                            <div style="flex:1;min-width:0;">
+                                <div style="color:white;font-size:0.85em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.original_filename}</div>
+                                <div style="color:#555;font-size:0.75em;margin-top:2px;">${new Date(f.uploaded_at * 1000).toLocaleDateString()} &middot; ${sizeKb} KB &middot; ${expiryText} &middot; <span id="dls-${f.slug}" data-count="${dlCount}">${dlCount}/${dlMax} dls</span></div>
+                            </div>
                         </div>
-                        <div style="display:flex;gap:6px;flex-shrink:0;">
+                        <div style="display:flex;flex-wrap:wrap;gap:5px;">
                             <button class="btn copy-btn" onclick="copyToClipboard('${fullUrl}', this)">Copy Link</button>
                             <a href="${fullUrl}" class="btn download-btn" title="Open share page" style="line-height:1.6;">↗</a>
                             <button class="btn" onclick="openActivityModal('${f.slug}', '${f.original_filename.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${f.uploaded_at}, ${f.file_size_bytes})" title="View download activity" style="background:#1a2a1a;color:#4caf50;border:1px solid #2a4a2a;">📊</button>
+                            <button class="btn" onclick="extendExpiry('${f.slug}', this)" title="Add 3 days to expiry" style="background:#1a1a2a;color:#818cf8;border:1px solid #2a2a4a;">+3 Days</button>
+                            <button class="btn" onclick="extendDownloads('${f.slug}', this)" title="Add 3 more downloads" style="background:#1a2a1a;color:#34d399;border:1px solid #1a4a2a;">+3 Downloads</button>
                         </div>
                     </li>`;
             }).join('');
@@ -340,6 +346,47 @@
         } catch {
             alert('Could not copy link. Check browser permissions.');
         }
+    }
+
+    async function extendExpiry(slug, btn) {
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/extend-expiry', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const newDate = new Date(data.expires_at * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const el = document.getElementById(`expiry-${slug}`);
+                if (el) { el.style.color = ''; el.textContent = `Expires ${newDate}`; }
+                notify('Expiry extended by 3 days', 'success');
+            } else {
+                notify('Failed to extend expiry', 'error');
+            }
+        } catch { notify('Failed to extend expiry', 'error'); }
+        btn.disabled = false;
+    }
+
+    async function extendDownloads(slug, btn) {
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/extend-downloads', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const el = document.getElementById(`dls-${slug}`);
+                if (el) el.textContent = `${el.dataset.count}/${data.max_downloads} dls`;
+                notify('+3 downloads added', 'success');
+            } else {
+                notify('Failed to extend downloads', 'error');
+            }
+        } catch { notify('Failed to extend downloads', 'error'); }
+        btn.disabled = false;
     }
 </script>
 
