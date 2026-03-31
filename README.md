@@ -1,5 +1,28 @@
 # CF File Drop
 
+![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)
+![D1](https://img.shields.io/badge/SQLite-D1-003B57?logo=sqlite&logoColor=white)
+![License](https://img.shields.io/github/license/dougpark/cf-file-drop?color=blue)
+![Beta](https://img.shields.io/badge/Status-Beta-yellow)
+
+---
+
+✨ Key Features
+- Zero-Account Sharing: Send files via "Magic Links" without requiring recipient registration.
+- Admin Dashboard: Comprehensive UI for managing tokens, revoking access, and monitoring usage.
+- Self-Sealing Setup: Secure "Bootstrap" process that locks itself after the first admin is created.
+- Smart Cleanup: Automated CRON triggers to prune expired R2 objects and database records.
+- Audit Logging: Privacy-conscious logging with salted IP hashing to protect downloader identity.
+
+---
+
+## 📖 Table of Contents
+- [Performance & Architecture](#performance--architecture)
+- [Security & Encryption](#security--encryption)
+- [Infrastructure & Prerequisites](#infrastructure--cloudflare-integration)
+- [First-Start: Bootstrapping](#first-start-bootstrapping-the-first-admin)
+- [Scheduled Jobs](#scheduled-jobs)
+
 # ⚡ File Drop (`drop.d11cloud.com`)
 
 Built natively on Cloudflare’s global edge network, **File Drop** represents the apex of secure, high-speed, zero-trust file distribution. By executing logic via V8 Isolates fractions of a millisecond away from the end user, every upload and download benefits from lightning-fast, localized performance—no matter where your recipients are on Earth. Engineered from the ground up for strict document containment, File Drop guarantees your sensitive data remains under your absolute control. Featuring cryptographically secure time-expiring links, strictly enforced maximum download thresholds, and comprehensive, auditable access logs backed by Cloudflare R2D1, this platform transcends standard storage solutions. It is the definitive, professional-grade architecture for transmitting private data across the globe with uncompromising speed and impenetrable security.
@@ -13,6 +36,15 @@ If you are wondering why the entire application is bundled into a single runtime
 
 When a request hits an edge node, Cloudflare spins up a **V8 Isolate** in mere milliseconds. By embedding all CSS, icons, and logic directly into the script, we eliminate the "waterfall" of additional network requests for static assets. The result is a "Zero-Latency" feel where the code is already in memory, ready to serve, the moment the Isolate wakes up. It isn't just fast; it’s built for the edge.
 
+graph TD
+    User((User)) -->|HTTPS/TLS 1.3| CF[Cloudflare Edge]
+    subgraph Cloudflare Worker
+        CF -->|V8 Isolate| Hono[Hono Router]
+        Hono -->|Auth Check| D1[(D1 Metadata)]
+        Hono -->|Stream File| R2[R2 Object Storage]
+    end
+    Hono -->|Signed Link| User
+
 ---
 
 ## Security & Encryption
@@ -21,6 +53,16 @@ Data integrity and privacy are baked into the infrastructure through Cloudflare 
 - **At Rest:** Files are stored in an **AES-256 encrypted** - **R2 bucket**, ensuring that data is protected the moment it leaves the stream.
 
 Note on End-to-End Encryption (E2EE): While the pipeline is encrypted at every stage, this service does not currently utilize client-side encryption. We have prioritized a seamless "Magic Link" user experience over the complex key-exchange requirements of E2EE, ensuring that receivers can access files without managing local cryptographic keys.
+
+## 🛡️ Security Model
+
+|Threat|Mitigation|
+|------|----------|
+|Data Breach at Rest|AES-256 Encryption provided by Cloudflare R2.|
+|Man-in-the-Middle|Strictly enforced TLS 1.3 (Cloudflare Edge).|
+|IP Tracking/Doxxing|IPs are salted and hashed (IP_HASH_SALT) before storage.|
+|Brute Force Slugs|"Cryptographically secure, high-entropy URL slugs."|
+|Bot Scraping|Token-based access control + Cloudflare WAF compatibility.|
 
 ## Infrastructure & Cloudflare Integration
 This project is architected to run exclusively on the Cloudflare Ecosystem, leveraging Workers (Compute), D1 (SQL Database), and R2 (Object Storage).
