@@ -192,19 +192,31 @@ app.get('/f/:slug', async (c) => {
 	return c.html(html);
 });
 
-// 2. The Actual Download Stream - public
+// 2. The Actual Download Stream — enforces the same expiry/limit/deletion gates as the landing page
 app.get('/f/:slug/raw', async (c) => {
 	const slug = c.req.param('slug');
 	const file = await c.env.DB.prepare(
-		"SELECT r2_key, original_filename, created_by_token FROM file_log WHERE slug = ?"
+		`SELECT r2_key, original_filename, created_by_token,
+		expires_at, is_single_use, download_count, COALESCE(max_downloads, 3) AS max_downloads
+		FROM file_log WHERE slug = ? AND deleted_at IS NULL`
 	).bind(slug).first();
 
 	if (!file) return c.text('Not found', 404);
 
+	// Enforce the same access controls as the landing page — prevents direct URL bypass
+	const now = Math.floor(Date.now() / 1000);
+	if (file.expires_at && now > (file.expires_at as number)) {
+		return c.text('This link has expired.', 410);
+	}
+	if (file.is_single_use && (file.download_count as number) > 0) {
+		return c.text('This was a single-use link and has already been claimed.', 410);
+	}
+	if ((file.download_count as number) >= (file.max_downloads as number)) {
+		return c.text('Download limit reached.', 410);
+	}
+
 	const object = await c.env.BUCKET.get(file.r2_key as string);
 	if (!object) return c.text('File missing', 404);
-
-	const now = Math.floor(Date.now() / 1000);
 
 	// Collect Cloudflare request metadata for the audit log
 	const ua = c.req.header('User-Agent') ?? null;
@@ -243,7 +255,10 @@ app.get('/f/:slug/raw', async (c) => {
 
 	const headers = new Headers();
 	object.writeHttpMetadata(headers);
-	headers.set('Content-Disposition', `attachment; filename="${file.original_filename}"`);
+	// Sanitize filename to prevent Content-Disposition header injection
+	const rawFilename = file.original_filename as string;
+	const safeFilename = rawFilename.replace(/["\\\r\n]/g, '_');
+	headers.set('Content-Disposition', `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(rawFilename)}`);
 	return new Response(object.body, { headers });
 });
 
@@ -328,6 +343,12 @@ app.post('/api/extend-expiry', async (c) => {
 	const callerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 	if (!callerToken) return c.json({ error: 'Unauthorized' }, 401);
 
+	// Verify the token is still active
+	const callerRecord = await c.env.DB.prepare(
+		'SELECT token FROM access_tokens WHERE token = ? AND is_active = 1'
+	).bind(callerToken).first();
+	if (!callerRecord) return c.json({ error: 'Unauthorized' }, 401);
+
 	const { slug } = await c.req.json();
 	if (!slug) return c.json({ error: 'slug required' }, 400);
 
@@ -349,6 +370,12 @@ app.post('/api/extend-downloads', async (c) => {
 	const authHeader = c.req.header('Authorization');
 	const callerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 	if (!callerToken) return c.json({ error: 'Unauthorized' }, 401);
+
+	// Verify the token is still active
+	const callerRecord2 = await c.env.DB.prepare(
+		'SELECT token FROM access_tokens WHERE token = ? AND is_active = 1'
+	).bind(callerToken).first();
+	if (!callerRecord2) return c.json({ error: 'Unauthorized' }, 401);
 
 	const { slug } = await c.req.json();
 	if (!slug) return c.json({ error: 'slug required' }, 400);
@@ -376,6 +403,12 @@ app.get('/api/file-activity/:slug', async (c) => {
 	const callerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 	if (!callerToken) return c.json({ error: 'Unauthorized' }, 401);
 
+	// Verify the token is still active
+	const activeRecord = await c.env.DB.prepare(
+		'SELECT token FROM access_tokens WHERE token = ? AND is_active = 1'
+	).bind(callerToken).first();
+	if (!activeRecord) return c.json({ error: 'Unauthorized' }, 401);
+
 	const slug = c.req.param('slug');
 
 	// Verify the file belongs to the calling token
@@ -393,6 +426,27 @@ app.get('/api/file-activity/:slug', async (c) => {
 	`).bind(slug).all();
 
 	return c.json(results);
+});
+
+// ── Admin authentication middleware ──────────────────────────────────────────
+// Protects ALL /admin/* routes: requires a valid, active, admin-flagged token
+// passed as:  Authorization: Bearer <token>
+app.use('/admin/*', async (c, next) => {
+	const authHeader = c.req.header('Authorization');
+	const adminToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!adminToken) {
+		return c.json({ error: 'Unauthorized' }, 401);
+	}
+	const user = await c.env.DB.prepare(
+		'SELECT is_admin FROM access_tokens WHERE token = ? AND is_active = 1'
+	).bind(adminToken).first<{ is_admin: number }>();
+	if (!user) {
+		return c.json({ error: 'Unauthorized' }, 401);
+	}
+	if (!user.is_admin) {
+		return c.json({ error: 'Forbidden: Admin access required' }, 403);
+	}
+	await next();
 });
 
 // admin create-new-user endpoint

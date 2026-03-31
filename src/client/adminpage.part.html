@@ -43,67 +43,85 @@
         </div>
     </div>
 
-    <!-- Filter Panel -->
-    <div id="filter-panel"
-        style="display: none; background: #111; border-bottom: 1px solid #2a2a2a; padding: 12px 16px;">
-        <div style="max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px;">
-            <input type="text" id="filter-search" placeholder="Search by name or email…" oninput="applyFilter()"
-                style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 0.85em;">
-            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                <span style="color: #555; font-size: 0.78em; width: 38px;">Status</span>
-                <button class="filter-chip active" data-group="status" data-value="all"
-                    onclick="setChip(this)">All</button>
-                <button class="filter-chip" data-group="status" data-value="active"
-                    onclick="setChip(this)">Active</button>
-                <button class="filter-chip" data-group="status" data-value="disabled"
-                    onclick="setChip(this)">Disabled</button>
-            </div>
-            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                <span style="color: #555; font-size: 0.78em; width: 38px;">Role</span>
-                <button class="filter-chip active" data-group="role" data-value="all"
-                    onclick="setChip(this)">All</button>
-                <button class="filter-chip" data-group="role" data-value="admin" onclick="setChip(this)">Admin</button>
-                <button class="filter-chip" data-group="role" data-value="standard"
-                    onclick="setChip(this)">Standard</button>
-            </div>
-            <div id="filter-count" style="color: #555; font-size: 0.78em; text-align: right;"></div>
+    <!-- Unauthorized state (shown when no valid admin token is present) -->
+    <div id="admin-unauth-wrapper" style="display:none; max-width:600px; margin:24px auto; padding:0 16px;">
+        <div
+            style="background:#1e1e1e;border:1px solid #4a1a1a;border-radius:10px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;">
+            <span style="font-size:2em;">🔒</span>
+            <span style="font-size:1.1em;font-weight:bold;color:white;">Admin Access Required</span>
+            <p style="color:#888;font-size:0.85em;margin:0;">Please open the admin panel from your send link:<br><code
+                    style="color:#64b5f6;">/admin?t=YOUR_ADMIN_TOKEN</code></p>
         </div>
     </div>
 
-    <!-- Page Header -->
-    <div style="padding: 24px 16px 8px 16px; max-width: 600px; margin: 0 auto;">
-        <h1 style="margin: 0 0 4px 0; font-size: 1.5em; color: white; font-weight: 700;">Access Tokens</h1>
-        <p style="margin: 0; color: #888; font-size: 0.85em;">Manage who can upload files and their permissions.</p>
-    </div>
+    <!-- Authorized content — hidden until token is verified by JS -->
+    <div id="admin-main-wrapper" style="display:none;">
 
-    <div
-        style="display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; padding: 12px 16px 32px 16px;">
+        <!-- Filter Panel -->
+        <div id="filter-panel"
+            style="display: none; background: #111; border-bottom: 1px solid #2a2a2a; padding: 12px 16px;">
+            <div style="max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" id="filter-search" placeholder="Search by name or email…" oninput="applyFilter()"
+                    style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 0.85em;">
+                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                    <span style="color: #555; font-size: 0.78em; width: 38px;">Status</span>
+                    <button class="filter-chip active" data-group="status" data-value="all"
+                        onclick="setChip(this)">All</button>
+                    <button class="filter-chip" data-group="status" data-value="active"
+                        onclick="setChip(this)">Active</button>
+                    <button class="filter-chip" data-group="status" data-value="disabled"
+                        onclick="setChip(this)">Disabled</button>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                    <span style="color: #555; font-size: 0.78em; width: 38px;">Role</span>
+                    <button class="filter-chip active" data-group="role" data-value="all"
+                        onclick="setChip(this)">All</button>
+                    <button class="filter-chip" data-group="role" data-value="admin"
+                        onclick="setChip(this)">Admin</button>
+                    <button class="filter-chip" data-group="role" data-value="standard"
+                        onclick="setChip(this)">Standard</button>
+                </div>
+                <div id="filter-count" style="color: #555; font-size: 0.78em; text-align: right;"></div>
+            </div>
+        </div>
 
-        <div id="create-new-user"
-            style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
-            <span style="font-size: 1.1em; font-weight: bold; color: white;">New Access Token</span>
-            <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #333;">
-                <input type="text" id="newUserName" placeholder="User Name"
-                    style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
-                <input type="email" id="newUserEmail" placeholder="User Email (optional)"
-                    style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <label
-                        style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
-                        <input type="checkbox" id="newUserIsAdmin"> Admin
-                    </label>
-                    <button id="createTokenBtn"
-                        style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Create
-                        Token</button>
+        <!-- Page Header -->
+        <div style="padding: 24px 16px 8px 16px; max-width: 600px; margin: 0 auto;">
+            <h1 style="margin: 0 0 4px 0; font-size: 1.5em; color: white; font-weight: 700;">Access Tokens</h1>
+            <p style="margin: 0; color: #888; font-size: 0.85em;">Manage who can upload files and their permissions.</p>
+        </div>
+
+        <div
+            style="display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; padding: 12px 16px 32px 16px;">
+
+            <div id="create-new-user"
+                style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-size: 1.1em; font-weight: bold; color: white;">New Access Token</span>
+                <div
+                    style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #333;">
+                    <input type="text" id="newUserName" placeholder="User Name"
+                        style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
+                    <input type="email" id="newUserEmail" placeholder="User Email (optional)"
+                        style="width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px; border: 1px solid #444; background: #111; color: white; font-size: 0.85em;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <label
+                            style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
+                            <input type="checkbox" id="newUserIsAdmin"> Admin
+                        </label>
+                        <button id="createTokenBtn"
+                            style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Create
+                            Token</button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div id="token-list">
-            Loading token list content...
-        </div>
+            <div id="token-list">
+                Loading token list content...
+            </div>
 
-    </div><!-- end shared container -->
+        </div><!-- end shared container -->
+
+    </div><!-- end admin-main-wrapper -->
 
     <!-- ── Modal overlay ── -->
     <div id="modal-overlay"
@@ -155,6 +173,15 @@
         }, duration);
     }
 
+    // Admin token — populated after DOMContentLoaded verification
+    let adminToken = null;
+
+    // Centralised fetch helper — automatically attaches the admin Bearer token
+    function adminFetch(url, opts = {}) {
+        const headers = { ...(opts.headers || {}), 'Authorization': `Bearer ${adminToken}` };
+        return fetch(url, { ...opts, headers });
+    }
+
     // Handle Create Token Button Click
     document.getElementById('createTokenBtn').addEventListener('click', async () => {
         const name = document.getElementById('newUserName').value.trim();
@@ -167,7 +194,7 @@
         }
 
         try {
-            const response = await fetch('/admin/create-new-user', {
+            const response = await adminFetch('/admin/create-new-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_name: name, user_email: email, is_admin: is_admin })
@@ -279,7 +306,7 @@
     // Fetch tokens from server
     async function loadTokens() {
         try {
-            const response = await fetch('/admin/tokens');
+            const response = await adminFetch('/admin/tokens');
             allTokens = await response.json();
             applyFilter();
         } catch (error) {
@@ -287,15 +314,46 @@
         }
     }
 
-    // Load tokens when page loads
-    window.addEventListener('DOMContentLoaded', loadTokens);
+    // Bootstrap: extract and verify the admin token before rendering any content
+    window.addEventListener('DOMContentLoaded', () => {
+        // Hide the filter button until we confirm admin access
+        document.getElementById('filter-toggle-btn').style.display = 'none';
+
+        const params = new URLSearchParams(window.location.search);
+        // Check URL param first, then the admin-specific key, then fall back to the
+        // sendpage's token key (d11_token) — both pages are same-origin so this works.
+        adminToken = params.get('t') || localStorage.getItem('d11_admin_token') || localStorage.getItem('d11_token');
+
+        if (!adminToken) {
+            document.getElementById('admin-unauth-wrapper').style.display = '';
+            return;
+        }
+
+        fetch('/api/user-info', { headers: { 'Authorization': `Bearer ${adminToken}` } })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.user.is_admin) {
+                    localStorage.setItem('d11_admin_token', adminToken);
+                    document.getElementById('admin-main-wrapper').style.display = '';
+                    document.getElementById('filter-toggle-btn').style.display = '';
+                    loadTokens();
+                } else {
+                    adminToken = null;
+                    localStorage.removeItem('d11_admin_token');
+                    document.getElementById('admin-unauth-wrapper').style.display = '';
+                }
+            })
+            .catch(() => {
+                document.getElementById('admin-unauth-wrapper').style.display = '';
+            });
+    });
 
 
 
     // Toggle admin status
     async function toggleAdmin(token, is_admin) {
         try {
-            const response = await fetch('/admin/update-admin-status', {
+            const response = await adminFetch('/admin/update-admin-status', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: token, is_admin: is_admin })
@@ -316,7 +374,7 @@
     // Disable a token
     async function disableToken(token) {
         try {
-            const response = await fetch('/admin/disable-token', {
+            const response = await adminFetch('/admin/disable-token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: token })
@@ -336,7 +394,7 @@
     // Enable a token
     async function enableToken(token) {
         try {
-            const response = await fetch('/admin/enable-token', {
+            const response = await adminFetch('/admin/enable-token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: token })
@@ -355,7 +413,7 @@
 
     // Copy join link to clipboard
     function copyJoinLink(token) {
-        const url = `https://drop.d11cloud.com/send?t=${token}`;
+        const url = `${window.location.origin}/send?t=${token}`;
         navigator.clipboard.writeText(url).then(() => {
             notify('Join link copied to clipboard', 'success');
         }).catch(() => {
@@ -407,7 +465,7 @@
         body.innerHTML = '<div style="color:#555;font-size:0.85em;text-align:center;padding:24px;">Loading…</div>';
 
         try {
-            const res = await fetch(`/admin/user-files/${_modalToken}`);
+            const res = await adminFetch(`/admin/user-files/${_modalToken}`);
             const files = await res.json();
 
             if (!files.length) {
@@ -458,7 +516,7 @@
         body.innerHTML = '<div style="color:#555;font-size:0.85em;text-align:center;padding:24px;">Loading…</div>';
 
         try {
-            const res = await fetch(`/admin/download-log/${slug}`);
+            const res = await adminFetch(`/admin/download-log/${slug}`);
             const events = await res.json();
 
             if (!events.length) {
