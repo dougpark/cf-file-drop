@@ -101,7 +101,7 @@ app.post('/upload', async (c) => {
 	).bind(hashSum).first();
 
 	const slug = crypto.randomUUID();
-	let r2_key = existing ? (existing.r2_key as string) : `${slug}-${file.name}`;
+	let r2_key = existing ? (existing.r2_key as string) : slug;
 
 	// 3. Upload to R2 (only if it's a new file)
 	if (!existing) {
@@ -153,12 +153,7 @@ app.get('/f/:slug', async (c) => {
 		return c.text('This was a single-use link and has already been claimed.', 410);
 	}
 
-	// 4. Handle Private PIN (if set)
-	const userPin = c.req.query('pin');
-	if (file.password_hash && file.password_hash !== userPin) {
-		// In a real app, you'd return an HTML form here. For now, a simple check:
-		return c.text('This file is private. Please append ?pin=YOUR_PIN to the URL.', 401);
-	}
+
 
 	// Check if they've hit the limit
 	const fileMaxDownloads = file.max_downloads as number;
