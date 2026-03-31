@@ -30,6 +30,8 @@ type Bindings = {
 	UPLOAD_PASSWORD: string;
 	/** Set via: npx wrangler secret put BOOTSTRAP_ADMIN_TOKEN */
 	BOOTSTRAP_ADMIN_TOKEN?: string;
+	/** Set via: npx wrangler secret put IP_HASH_SALT — prevents rainbow-table attacks on hashed IPs */
+	IP_HASH_SALT?: string;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -250,7 +252,8 @@ app.get('/f/:slug/raw', async (c) => {
 	const rawIp = c.req.header('CF-Connecting-IP') ?? null;
 	let ipHash: string | null = null;
 	if (rawIp) {
-		const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawIp));
+		const saltedIp = rawIp + (c.env.IP_HASH_SALT ?? '');
+		const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(saltedIp));
 		ipHash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 	}
 

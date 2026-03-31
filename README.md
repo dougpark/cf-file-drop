@@ -55,16 +55,40 @@ Because every admin action requires a valid admin token in the database, a fresh
 
 The solution is a **one-time bootstrap token** stored as a Wrangler secret. The `/setup` endpoint uses it to create the first admin token and then permanently seals itself once any admin exists.
 
-### Step 1 — Set the bootstrap secret
+### Step 1 — Set the required secrets
 
-Choose a strong random value (e.g. from `openssl rand -hex 24`) and store it as a Wrangler secret:
+Choose a strong random value for the bootstrap token (e.g. from `openssl rand -hex 24`) and a separate salt for IP hashing, then store both as Wrangler secrets:
 
 ```bash
+# First-boot admin seed
 npx wrangler secret put BOOTSTRAP_ADMIN_TOKEN
 # paste your secret at the prompt, then press Enter
+
+# Salt for hashing downloader IP addresses (prevents rainbow-table attacks)
+npx wrangler secret put IP_HASH_SALT
+# paste a different random value, e.g. output of: openssl rand -hex 32
 ```
 
-This stores the value encrypted in Cloudflare — it never appears in source code or `wrangler.jsonc`.
+Both values are stored encrypted in Cloudflare — they never appear in source code or `wrangler.jsonc`.
+
+#### Local development
+
+For `wrangler dev`, secrets are read from a `.dev.vars` file in the project root (never commit this file):
+
+```bash
+# .dev.vars  ← gitignored
+BOOTSTRAP_ADMIN_TOKEN=your-local-bootstrap-secret
+IP_HASH_SALT=your-local-ip-salt
+```
+
+Create it once:
+
+```bash
+cat > .dev.vars <<'EOF'
+BOOTSTRAP_ADMIN_TOKEN=dev-bootstrap-token
+IP_HASH_SALT=$(openssl rand -hex 32)
+EOF
+```
 
 ### Step 2 — Deploy
 
@@ -141,6 +165,7 @@ This bypasses the `/setup` endpoint entirely and is useful for scripted or CI de
 | Secret | Purpose | Required |
 |--------|---------|----------|
 | `BOOTSTRAP_ADMIN_TOKEN` | First-boot admin seed | First deploy only |
+| `IP_HASH_SALT` | Salts IP hashes in download_log to prevent rainbow-table attacks | Always (set before first deploy) |
 
 Set with `npx wrangler secret put <NAME>`, delete with `npx wrangler secret delete <NAME>`.
 

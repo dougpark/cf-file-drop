@@ -1,0 +1,12 @@
+# Copy this file to .dev.vars and fill in your local values.
+# .dev.vars is gitignored — never commit real secrets.
+# These are only used by `wrangler dev` (local development).
+
+# First-boot admin seed — used by GET /setup to create the first admin token.
+# Can be any strong random string for local dev.
+BOOTSTRAP_ADMIN_TOKEN=dev-bootstrap-token-change-me
+
+# Salt added to CF-Connecting-IP before SHA-256 hashing in the download audit log.
+# Prevents rainbow-table attacks against the stored IP hashes.
+# Generate a real value with: openssl rand -hex 32
+IP_HASH_SALT=dev-ip-salt-change-me
