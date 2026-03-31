@@ -222,4 +222,4 @@ A nightly cleanup cron runs at **02:00 UTC** (configured in `wrangler.jsonc`):
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](https://github.com/dougpark/cf-file-drop/blob/main/LICENSE) for more information.
+Distributed under the MIT License. See [LICENSE](/LICENSE) for more information.
