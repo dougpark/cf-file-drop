@@ -28,6 +28,8 @@ type Bindings = {
 	DB: D1Database;
 	BUCKET: R2Bucket;
 	UPLOAD_PASSWORD: string;
+	/** Set via: npx wrangler secret put BOOTSTRAP_ADMIN_TOKEN */
+	BOOTSTRAP_ADMIN_TOKEN?: string;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -527,6 +529,94 @@ app.post('/admin/disable-token', async (c) => {
 // The Default Endpoint - public, just to test that the worker is running. You can remove this once you have the main functionality working.
 app.get('/hello', async (c) => {
 	return c.text(`Hello from Cloudflare Workers!`)
+})
+
+/**
+ * First-boot setup endpoint.
+ *
+ * Requirements:
+ *   1. Set the BOOTSTRAP_ADMIN_TOKEN secret:  npx wrangler secret put BOOTSTRAP_ADMIN_TOKEN
+ *   2. Navigate to:  https://drop.d11cloud.com/setup?key=<your-secret>
+ *
+ * Behaviour:
+ *   - Validates ?key= against the BOOTSTRAP_ADMIN_TOKEN secret.
+ *   - If no admin token exists yet: inserts the secret as the first admin token
+ *     and returns a page with the ready-to-use admin URL.
+ *   - If an admin already exists, or the key is wrong/missing: returns 404.
+ *     This seals the endpoint permanently once bootstrapping is complete.
+ */
+app.get('/setup', async (c) => {
+	const bootstrapSecret = c.env.BOOTSTRAP_ADMIN_TOKEN;
+
+	// Endpoint is unavailable if the secret was never configured
+	if (!bootstrapSecret) {
+		return c.notFound();
+	}
+
+	// Require the secret as a URL query parameter to authenticate the request
+	const key = c.req.query('key');
+	if (!key || key !== bootstrapSecret) {
+		return c.notFound();
+	}
+
+	// Seal the endpoint once any admin token exists
+	const adminCount = await c.env.DB.prepare(
+		"SELECT COUNT(*) AS cnt FROM access_tokens WHERE is_admin = 1 AND is_active = 1"
+	).first<{ cnt: number }>();
+
+	if ((adminCount?.cnt ?? 0) > 0) {
+		return c.notFound();
+	}
+
+	// Insert the bootstrap secret as the first admin token (idempotent)
+	await c.env.DB.prepare(
+		`INSERT OR IGNORE INTO access_tokens (token, user_name, is_admin, is_active)
+		 VALUES (?, 'Admin', 1, 1)`
+	).bind(bootstrapSecret).run();
+
+	const origin = new URL(c.req.url).origin;
+	const adminSendUrl = `${origin}/send?t=${bootstrapSecret}`;
+	const adminPanelUrl = `${origin}/admin`;
+
+	console.log(`[BOOTSTRAP] First admin token activated. Send page: ${adminSendUrl}`);
+
+	const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Drop — First-Start Setup</title>
+  <style>
+    body { font-family: system-ui; background: #16181c; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; }
+    .card { background: #1e1e1e; border: 1px solid #2a5a2a; border-radius: 12px; padding: 32px; max-width: 560px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+    h1 { margin: 0; font-size: 1.3em; color: #4caf50; }
+    p { margin: 0; color: #888; font-size: 0.9em; line-height: 1.5; }
+    .url-box { background: #111; border: 1px solid #333; border-radius: 8px; padding: 14px 16px; font-family: monospace; font-size: 0.85em; color: #64b5f6; word-break: break-all; }
+    .label { font-size: 0.75em; color: #555; margin-bottom: 4px; }
+    button { padding: 10px 20px; border-radius: 8px; border: none; background: #1a3a1a; color: #4caf50; border: 1px solid #2a5a2a; cursor: pointer; font-size: 0.9em; font-weight: 600; align-self: flex-start; }
+    button:hover { background: #1e4a1e; }
+    .warn { color: #f87171; font-size: 0.8em; border-top: 1px solid #333; padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>✅ First Admin Token Created</h1>
+    <p>Your bootstrap admin token has been inserted into the database.<br>Use the link below to access File Drop as an administrator.</p>
+    <div>
+      <div class="label">📤 Send / Upload page (bookmark this):</div>
+      <div class="url-box" id="send-url">${adminSendUrl}</div>
+    </div>
+    <div>
+      <div class="label">⚙️ Admin panel:</div>
+      <div class="url-box">${adminPanelUrl}</div>
+    </div>
+    <button onclick="navigator.clipboard.writeText('${adminSendUrl}').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy Send URL',2000)})">Copy Send URL</button>
+    <p class="warn">⚠️ This page is now sealed — it will return 404 on any future visit. Store your token securely. To revoke it, remove the BOOTSTRAP_ADMIN_TOKEN secret and disable the token from the admin panel.</p>
+  </div>
+</body>
+</html>`;
+
+	return c.html(html);
 })
 
 // Scheduled cleanup: runs nightly at 02:00 UTC
