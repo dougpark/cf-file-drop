@@ -1,3 +1,6 @@
+# Cloudflare worker
+wrangler.jsonc
+
 # Logs
 
 logs

@@ -8,6 +8,36 @@ Probably, it's still in beta so use at your own risk.
 
 ---
 
+## Performance & Architecture
+If you are wondering why the entire application is bundled into a single runtime file and gzipped before deployment, it is to take full advantage of the Cloudflare Workers architecture.
+
+When a request hits an edge node, Cloudflare spins up a **V8 Isolate** in mere milliseconds. By embedding all CSS, icons, and logic directly into the script, we eliminate the "waterfall" of additional network requests for static assets. The result is a "Zero-Latency" feel where the code is already in memory, ready to serve, the moment the Isolate wakes up. It isn't just fast; it’s built for the edge.
+
+---
+
+## Security & Encryption
+Data integrity and privacy are baked into the infrastructure through Cloudflare One.
+- **In Transit:** All traffic is strictly enforced over **TLS 1.3**, providing domain-level encryption from the browser to the Worker.
+- **At Rest:** Files are stored in an **AES-256 encrypted** - **R2 bucket**, ensuring that data is protected the moment it leaves the stream.
+
+Note on End-to-End Encryption (E2EE): While the pipeline is encrypted at every stage, this service does not currently utilize client-side encryption. We have prioritized a seamless "Magic Link" user experience over the complex key-exchange requirements of E2EE, ensuring that receivers can access files without managing local cryptographic keys.
+
+## Infrastructure & Cloudflare Integration
+This project is architected to run exclusively on the Cloudflare Ecosystem, leveraging Workers (Compute), D1 (SQL Database), and R2 (Object Storage).
+
+**Prerequisites**
+To deploy this service, you must have an active Cloudflare account with the following resources provisioned:
+- Cloudflare Workers: The serverless runtime for the application logic.
+- D1 Database: For relational metadata, user tokens, and audit logging.
+- R2 Bucket: For high-performance, S3-compatible object storage.
+
+**Resource Binding**
+Successful deployment requires binding these resources to your Worker environment. You will need to configure your wrangler.json (or wrangler.toml) to map the DB and BUCKET bindings to your specific resource IDs.
+
+Detailed documentation for creating these resources and managing bindings can be found in the **Cloudflare Developer Documentation**, or via an LLM-assisted walkthrough for rapid environment setup.
+
+---
+
 ## Stack
 
 | Layer | Service |
