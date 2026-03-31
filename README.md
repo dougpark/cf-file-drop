@@ -218,3 +218,8 @@ A nightly cleanup cron runs at **02:00 UTC** (configured in `wrangler.jsonc`):
 
 - Soft-deletes expired file records (with a 24-hour grace period)
 - Deletes R2 objects only when every reference to that object has been soft-deleted (deduplication safety)
+
+
+## License
+
+Distributed under the MIT License. See [LICENSE](https://github.com/dougpark/cf-file-drop/blob/main/LICENSE) for more information.
