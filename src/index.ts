@@ -34,6 +34,11 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+// ── Upload policy ─────────────────────────────────────────────────────────────
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB hard cap per file
+const MAX_UPLOADS_PER_HOUR = 10;               // per access token
+const MAX_UPLOADS_PER_DAY = 50;               // per access token
+
 //The Default Endpoint - public
 app.get('/', (c) => {
 	const html =
@@ -87,6 +92,28 @@ app.post('/upload', async (c) => {
 	const file = body['file'] as File;
 
 	if (!file) return c.text('No file uploaded', 400);
+
+	// Enforce file size cap before doing any expensive work
+	if (file.size > MAX_FILE_SIZE_BYTES) {
+		return c.json({ success: false, error: `File too large. Maximum size is ${MAX_FILE_SIZE_BYTES / 1024 / 1024} MB.` }, 413);
+	}
+
+	// Rate-limit check — one query covers both windows via conditional aggregation
+	const now = Math.floor(Date.now() / 1000);
+	const rateRow = await c.env.DB.prepare(`
+		SELECT
+			SUM(CASE WHEN uploaded_at > ? THEN 1 ELSE 0 END) AS hour_count,
+			COUNT(*) AS day_count
+		FROM file_log
+		WHERE created_by_token = ? AND uploaded_at > ?
+	`).bind(now - 3600, uploadToken, now - 86400).first<{ hour_count: number; day_count: number }>();
+
+	if ((rateRow?.hour_count ?? 0) >= MAX_UPLOADS_PER_HOUR) {
+		return c.json({ success: false, error: 'Upload limit reached. Too many uploads in the last hour — please wait before trying again.' }, 429);
+	}
+	if ((rateRow?.day_count ?? 0) >= MAX_UPLOADS_PER_DAY) {
+		return c.json({ success: false, error: 'Daily upload limit reached. Please try again tomorrow.' }, 429);
+	}
 
 	// 1. Generate SHA-256 for Deduplication
 	const arrayBuffer = await file.arrayBuffer();
