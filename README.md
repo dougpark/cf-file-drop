@@ -1,4 +1,4 @@
-# File Drop
+# ⚡ File Drop 
 
 ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)
 ![D1](https://img.shields.io/badge/SQLite-D1-003B57?logo=sqlite&logoColor=white)
@@ -23,7 +23,7 @@
 - [First-Start: Bootstrapping](#first-start-bootstrapping-the-first-admin)
 - [Scheduled Jobs](#scheduled-jobs)
 
-# ⚡ File Drop 
+
 
 Built natively on Cloudflare’s global edge network, **File Drop** represents the apex of secure, high-speed, zero-trust file distribution. By executing logic via V8 Isolates fractions of a millisecond away from the end user, every upload and download benefits from lightning-fast, localized performance—no matter where your recipients are on Earth. Engineered from the ground up for strict document containment, File Drop guarantees your sensitive data remains under your absolute control. Featuring cryptographically secure time-expiring links, strictly enforced maximum download thresholds, and comprehensive, auditable access logs backed by Cloudflare R2D1, this platform transcends standard storage solutions. It is the definitive, professional-grade architecture for transmitting private data across the globe with uncompromising speed and impenetrable security.
 
