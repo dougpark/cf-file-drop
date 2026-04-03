@@ -10,13 +10,16 @@
             <span class="nav-icon">📂</span>
             <span class="nav-title">File Drop</span>
         </div>
+        <div class="nav-user-menu">
+            <button class="nav-user-btn" id="userMenuBtn" onclick="toggleUserMenu()" aria-label="User menu">
+                <span class="nav-user-icon">👤</span>
+            </button>
+            <div class="nav-dropdown" id="userMenu">
+                <a id="admin-menu-link" href="/admin" class="nav-dropdown-item hidden">⚙️ Admin Panel</a>
+                <a href="/profile" class="nav-dropdown-item">👤 Profile</a>
+            </div>
+        </div>
     </nav>
-
-    <!-- Page Header -->
-    <div class="page-header">
-        <h1 id="greeting">File Drop</h1>
-        <p>Your personal file sharing hub.</p>
-    </div>
 
     <!-- Main Content -->
     <div class="page-content">
@@ -32,18 +35,6 @@
 
         <!-- Authorized state -->
         <div id="authorized" class="card-stack hidden">
-
-            <!-- Admin card (only visible to admins) -->
-            <div id="admin-card" class="page-card card-info hidden">
-                <div class="page-card-header-row">
-                    <span class="page-card-title">Administration</span>
-                    <span class="badge badge-admin">ADMIN</span>
-                </div>
-                <div class="page-card-body">
-                    <p class="page-card-desc">Manage users, access tokens and permissions.</p>
-                    <button class="btn btn-accent" onclick="window.location.href='/admin'">Go to Admin Panel</button>
-                </div>
-            </div>
 
             <!-- Upload card -->
             <div class="page-card">
@@ -139,10 +130,10 @@
             if (data.success) {
                 localStorage.setItem('d11_token', token);
                 senderName = data.user.user_name;
-                document.getElementById('greeting').textContent = `${senderName}'s Drop Zone`;
+                document.querySelector('.nav-title').textContent = `${senderName}'s File Drop`;
                 document.getElementById('authorized').classList.remove('hidden');
                 if (data.user.is_admin) {
-                    document.getElementById('admin-card').classList.remove('hidden');
+                    document.getElementById('admin-menu-link').classList.remove('hidden');
                 }
                 loadStats(token);
                 loadRecent();
@@ -337,6 +328,15 @@
         } catch { notify('Failed to extend expiry', 'error'); }
         btn.disabled = false;
     }
+
+    function toggleUserMenu() {
+        document.getElementById('userMenu').classList.toggle('open');
+    }
+    document.addEventListener('click', function (e) {
+        if (!document.getElementById('userMenuBtn').contains(e.target)) {
+            document.getElementById('userMenu').classList.remove('open');
+        }
+    });
 
     async function extendDownloads(slug, btn) {
         btn.disabled = true;
