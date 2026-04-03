@@ -47,6 +47,76 @@
             </div>
         </div>
 
+        <!-- Request access card -->
+        <div class="page-card" id="request-access-card">
+            <span class="page-card-title">Request Access</span>
+            <div class="page-card-body" style="display:flex;flex-direction:column;gap:10px;">
+                <p style="margin:0;color:#888;font-size:0.85em;">Send a message to the admin to request an upload
+                    account.</p>
+                <div id="req-form-fields" style="display:flex;flex-direction:column;gap:8px;">
+                    <input type="text" id="req-name" placeholder="Your name"
+                        style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:6px;border:1px solid #444;background:#111;color:white;font-size:0.85em;">
+                    <input type="email" id="req-email" placeholder="Your email"
+                        style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:6px;border:1px solid #444;background:#111;color:white;font-size:0.85em;">
+                    <textarea id="req-message" placeholder="Optional message…" rows="3"
+                        style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:6px;border:1px solid #444;background:#111;color:white;font-size:0.85em;resize:vertical;font-family:inherit;"></textarea>
+                    <button id="req-submit-btn" onclick="submitAccessRequest()"
+                        style="padding:9px 16px;border-radius:6px;border:none;background:#0070f3;color:white;cursor:pointer;font-size:0.9em;font-weight:600;">Send
+                        Request</button>
+                    <div id="req-error" style="display:none;color:#f44336;font-size:0.82em;margin-top:2px;"></div>
+                </div>
+                <div id="req-success" style="display:none;text-align:center;padding:12px 0;">
+                    <span style="font-size:1.5em;">✅</span>
+                    <p style="margin:6px 0 0;color:#4caf50;font-weight:600;">Request sent!</p>
+                    <p style="margin:4px 0 0;color:#888;font-size:0.82em;">The admin will review your request and send
+                        you a link.</p>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+    <script>
+        async function submitAccessRequest() {
+            const name = document.getElementById('req-name').value.trim();
+            const email = document.getElementById('req-email').value.trim();
+            const message = document.getElementById('req-message').value.trim();
+            const errEl = document.getElementById('req-error');
+            errEl.style.display = 'none';
+
+            if (!name || !email) {
+                errEl.textContent = 'Name and email are required.';
+                errEl.style.display = '';
+                return;
+            }
+
+            const btn = document.getElementById('req-submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+
+            try {
+                const res = await fetch('/api/request-access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, message })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('req-form-fields').style.display = 'none';
+                    document.getElementById('req-success').style.display = '';
+                } else {
+                    errEl.textContent = data.error || 'Something went wrong. Please try again.';
+                    errEl.style.display = '';
+                    btn.disabled = false;
+                    btn.textContent = 'Send Request';
+                }
+            } catch (e) {
+                errEl.textContent = 'Network error. Please try again.';
+                errEl.style.display = '';
+                btn.disabled = false;
+                btn.textContent = 'Send Request';
+            }
+        }
+    </script>
 
 </body>

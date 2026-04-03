@@ -85,6 +85,21 @@
             </div>
         </div>
 
+        <!-- Access Requests Section -->
+        <div
+            style="padding: 24px 16px 8px 16px; max-width: 600px; margin: 0 auto; display:flex; align-items:center; gap:8px;">
+            <h2 style="margin: 0; font-size: 1.3em; color: white; font-weight: 700;">Access Requests</h2>
+            <span id="req-badge"
+                style="display:none; font-size:0.75em; padding:2px 8px; border-radius:12px; background:#0070f3; color:white;"></span>
+        </div>
+
+        <div
+            style="display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; padding: 4px 16px 8px 16px;">
+            <div id="access-requests-list">
+                <div style="color:#555;font-size:0.85em;text-align:center;padding:20px;">Loading…</div>
+            </div>
+        </div>
+
         <!-- Page Header -->
         <div style="padding: 24px 16px 8px 16px; max-width: 600px; margin: 0 auto;">
             <h1 style="margin: 0 0 4px 0; font-size: 1.5em; color: white; font-weight: 700;">Access Tokens</h1>
@@ -335,6 +350,7 @@
                     localStorage.setItem('d11_admin_token', adminToken);
                     document.getElementById('admin-main-wrapper').style.display = '';
                     document.getElementById('filter-toggle-btn').style.display = '';
+                    loadAccessRequests();
                     loadTokens();
                 } else {
                     adminToken = null;
@@ -418,6 +434,110 @@
         }).catch(() => {
             prompt('Copy this join link:', url);
         });
+    }
+
+    // ── Access Requests ────────────────────────────────────────
+
+    async function loadAccessRequests() {
+        try {
+            const res = await adminFetch('/admin/access-requests');
+            const requests = await res.json();
+            const list = document.getElementById('access-requests-list');
+            const pending = requests.filter(r => r.status === 'pending');
+            const badge = document.getElementById('req-badge');
+
+            if (pending.length > 0) {
+                badge.textContent = `${pending.length} pending`;
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            if (!requests.length) {
+                list.innerHTML = '<div style="color:#555;font-size:0.85em;text-align:center;padding:20px;">No access requests yet.</div>';
+                return;
+            }
+
+            list.innerHTML = requests.map(r => {
+                const date = new Date(r.requested_at * 1000).toLocaleString();
+                const reviewed = r.reviewed_at ? new Date(r.reviewed_at * 1000).toLocaleString() : null;
+                const statusColor = r.status === 'pending' ? '#f59e0b' : r.status === 'approved' ? '#4caf50' : '#f44336';
+                const statusBg = r.status === 'pending' ? '#2a2000' : r.status === 'approved' ? '#1a4a1a' : '#4a1a1a';
+                const actions = r.status === 'pending' ? `
+                    <button onclick="approveRequest(${r.id})" style="padding:5px 12px;border-radius:6px;border:none;background:#0070f3;color:white;cursor:pointer;font-size:0.82em;">Approve</button>
+                    <button onclick="denyRequest(${r.id})" style="padding:5px 12px;border-radius:6px;border:1px solid #555;background:none;color:#aaa;cursor:pointer;font-size:0.82em;">Deny</button>
+                ` : `<span style="font-size:0.78em;color:#555;">${reviewed ? `Reviewed ${reviewed}` : ''}</span>`;
+                const msg = r.message ? `<div style="color:#888;font-size:0.8em;font-style:italic;margin-top:2px;">"${r.message}"</div>` : '';
+                return `<div id="req-card-${r.id}" style="background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+                        <div>
+                            <span style="font-size:1em;font-weight:bold;color:white;">${r.name}</span>
+                            <div style="font-size:0.82em;color:#888;">${r.email}</div>
+                            ${msg}
+                        </div>
+                        <span style="font-size:0.72em;padding:3px 8px;border-radius:12px;background:${statusBg};color:${statusColor};white-space:nowrap;">${r.status}</span>
+                    </div>
+                    <div style="font-size:0.75em;color:#555;">${date}</div>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:4px;border-top:1px solid #2a2a2a;">${actions}</div>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            document.getElementById('access-requests-list').innerHTML =
+                `<p style="color:red;font-size:0.85em;">Error loading requests: ${err.message}</p>`;
+        }
+    }
+
+    async function approveRequest(id) {
+        try {
+            const res = await adminFetch('/admin/approve-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            const result = await res.json();
+            if (result.success) {
+                const joinUrl = `${window.location.origin}${result.join_url}`;
+                const card = document.getElementById(`req-card-${id}`);
+                if (card) {
+                    const actionsDiv = card.querySelector('div:last-child');
+                    actionsDiv.innerHTML = `
+                        <span style="font-size:0.78em;color:#4caf50;">Approved — </span>
+                        <code style="font-size:0.75em;color:#64b5f6;word-break:break-all;">${joinUrl}</code>
+                        <button onclick="navigator.clipboard.writeText('${joinUrl}').then(()=>{this.innerText='Copied!';setTimeout(()=>this.innerText='Copy',2000)})" style="padding:3px 8px;border-radius:6px;border:none;background:#0070f3;color:white;cursor:pointer;font-size:0.78em;">Copy</button>
+                    `;
+                    card.querySelector('[style*="border-radius:12px"]').textContent = 'approved';
+                    card.querySelector('[style*="border-radius:12px"]').style.background = '#1a4a1a';
+                    card.querySelector('[style*="border-radius:12px"]').style.color = '#4caf50';
+                }
+                notify('Request approved — copy the join link', 'success', 5000);
+                loadAccessRequests();
+                loadTokens();
+            } else {
+                notify(`Error: ${result.error}`, 'error');
+            }
+        } catch (err) {
+            notify(`Error: ${err.message}`, 'error');
+        }
+    }
+
+    async function denyRequest(id) {
+        if (!confirm('Deny this access request?')) return;
+        try {
+            const res = await adminFetch('/admin/deny-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            const result = await res.json();
+            if (result.success) {
+                notify('Request denied', 'info');
+                loadAccessRequests();
+            } else {
+                notify(`Error: ${result.error}`, 'error');
+            }
+        } catch (err) {
+            notify(`Error: ${err.message}`, 'error');
+        }
     }
 
     // ── Modal helpers ──────────────────────────────────────────

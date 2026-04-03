@@ -318,6 +318,46 @@ app.get('/manifest.json', (c) => {
 	return c.json(require('../public/manifest.json')) // Or just paste the JSON here
 })
 
+// ── Public: submit an access request ─────────────────────────────────────────
+app.post('/api/request-access', async (c) => {
+	const body = await c.req.json();
+	const name = (body.name as string)?.trim();
+	const email = (body.email as string)?.trim();
+	const message = (body.message as string)?.trim() ?? null;
+
+	if (!name || !email) return c.json({ error: 'Name and email are required' }, 400);
+	if (name.length > 100 || email.length > 200) return c.json({ error: 'Input too long' }, 400);
+
+	// Hash IP for abuse detection — never stored raw
+	const rawIp = c.req.header('CF-Connecting-IP') ?? null;
+	let ipHash: string | null = null;
+	if (rawIp) {
+		const salted = rawIp + (c.env.IP_HASH_SALT ?? '');
+		const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salted));
+		ipHash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+	}
+
+	// Rate-limit: max 3 pending requests per IP hash in 24 hours
+	if (ipHash) {
+		const recent = await c.env.DB.prepare(
+			`SELECT COUNT(*) AS cnt FROM access_requests WHERE ip_hash = ? AND requested_at > ? AND status = 'pending'`
+		).bind(ipHash, Math.floor(Date.now() / 1000) - 86400).first<{ cnt: number }>();
+		if ((recent?.cnt ?? 0) >= 3) return c.json({ error: 'Too many requests. Please try again later.' }, 429);
+	}
+
+	// Prevent duplicate pending requests for the same email
+	const existing = await c.env.DB.prepare(
+		`SELECT id FROM access_requests WHERE email = ? AND status = 'pending' LIMIT 1`
+	).bind(email).first();
+	if (existing) return c.json({ error: 'A request for this email is already pending.' }, 409);
+
+	await c.env.DB.prepare(
+		`INSERT INTO access_requests (name, email, message, ip_hash) VALUES (?, ?, ?, ?)`
+	).bind(name, email, message, ipHash).run();
+
+	return c.json({ success: true });
+});
+
 // An API Endpoint to List Recent Uploads — scoped to the calling user's token
 app.get('/api/recent', async (c) => {
 	const authHeader = c.req.header('Authorization');
@@ -547,6 +587,76 @@ app.post('/admin/create-new-user', async (c) => {
 	`).bind(token, userName, userEmail, is_admin ? 1 : 0).run();
 
 	return c.json({ success: true, token });
+});
+
+// ── Admin: list access requests ───────────────────────────────────────────────
+app.get('/admin/access-requests', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const adminToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!adminToken) return c.json({ error: 'Unauthorized' }, 401);
+	const admin = await c.env.DB.prepare(
+		'SELECT token FROM access_tokens WHERE token = ? AND is_active = 1 AND is_admin = 1'
+	).bind(adminToken).first();
+	if (!admin) return c.json({ error: 'Forbidden' }, 403);
+
+	const { results } = await c.env.DB.prepare(
+		`SELECT id, name, email, message, requested_at, status, reviewed_at
+		 FROM access_requests ORDER BY requested_at DESC LIMIT 100`
+	).all();
+	return c.json(results);
+});
+
+// ── Admin: approve a request → creates access token and marks approved ────────
+app.post('/admin/approve-request', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const adminToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!adminToken) return c.json({ error: 'Unauthorized' }, 401);
+	const admin = await c.env.DB.prepare(
+		'SELECT token FROM access_tokens WHERE token = ? AND is_active = 1 AND is_admin = 1'
+	).bind(adminToken).first();
+	if (!admin) return c.json({ error: 'Forbidden' }, 403);
+
+	const { id } = await c.req.json();
+	if (!id) return c.json({ error: 'id required' }, 400);
+
+	const req = await c.env.DB.prepare(
+		`SELECT * FROM access_requests WHERE id = ? AND status = 'pending'`
+	).bind(id).first<{ name: string; email: string }>();
+	if (!req) return c.json({ error: 'Request not found or already reviewed' }, 404);
+
+	const newToken = generateToken(16);
+	const now = Math.floor(Date.now() / 1000);
+
+	await c.env.DB.prepare(
+		`INSERT INTO access_tokens (token, user_name, user_email, is_admin) VALUES (?, ?, ?, 0)`
+	).bind(newToken, req.name, req.email).run();
+
+	await c.env.DB.prepare(
+		`UPDATE access_requests SET status = 'approved', reviewed_at = ?, reviewed_by_token = ? WHERE id = ?`
+	).bind(now, adminToken, id).run();
+
+	return c.json({ success: true, token: newToken, join_url: `/dash?t=${newToken}` });
+});
+
+// ── Admin: deny a request ─────────────────────────────────────────────────────
+app.post('/admin/deny-request', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const adminToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!adminToken) return c.json({ error: 'Unauthorized' }, 401);
+	const admin = await c.env.DB.prepare(
+		'SELECT token FROM access_tokens WHERE token = ? AND is_active = 1 AND is_admin = 1'
+	).bind(adminToken).first();
+	if (!admin) return c.json({ error: 'Forbidden' }, 403);
+
+	const { id } = await c.req.json();
+	if (!id) return c.json({ error: 'id required' }, 400);
+
+	const now = Math.floor(Date.now() / 1000);
+	await c.env.DB.prepare(
+		`UPDATE access_requests SET status = 'denied', reviewed_at = ?, reviewed_by_token = ? WHERE id = ?`
+	).bind(now, adminToken, id).run();
+
+	return c.json({ success: true });
 });
 
 // Helper to create a token
