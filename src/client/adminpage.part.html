@@ -568,19 +568,8 @@
             const result = await res.json();
             if (result.success) {
                 const joinUrl = `${window.location.origin}${result.join_url}`;
-                const card = document.getElementById(`req-card-${id}`);
-                if (card) {
-                    const actionsDiv = card.querySelector('div:last-child');
-                    actionsDiv.innerHTML = `
-                        <span style="font-size:0.78em;color:#4caf50;">Approved — </span>
-                        <code style="font-size:0.75em;color:#64b5f6;word-break:break-all;">${joinUrl}</code>
-                        <button onclick="navigator.clipboard.writeText('${joinUrl}').then(()=>{this.innerText='Copied!';setTimeout(()=>this.innerText='Copy',2000)})" style="padding:3px 8px;border-radius:6px;border:none;background:#0070f3;color:white;cursor:pointer;font-size:0.78em;">Copy</button>
-                    `;
-                    card.querySelector('[style*="border-radius:12px"]').textContent = 'approved';
-                    card.querySelector('[style*="border-radius:12px"]').style.background = '#1a4a1a';
-                    card.querySelector('[style*="border-radius:12px"]').style.color = '#4caf50';
-                }
-                notify('Request approved — copy the join link', 'success', 5000);
+                navigator.clipboard.writeText(joinUrl).catch(() => prompt('Copy this join link:', joinUrl));
+                notify('Request approved — join link copied to clipboard', 'success', 6000);
                 loadAccessRequests();
                 loadTokens();
             } else {

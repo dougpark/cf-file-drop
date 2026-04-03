@@ -21,6 +21,8 @@ import maxDownload from './client/maxdownload.part.html'
 // @ts-ignore
 import expiredPage from './client/expired.part.html'
 // @ts-ignore
+import notFoundPage from './client/notfound.part.html'
+// @ts-ignore
 import download from './client/download.part.html'
 
 
@@ -189,7 +191,14 @@ app.get('/f/:slug', async (c) => {
 		WHERE fl.slug = ? AND fl.deleted_at IS NULL`
 	).bind(slug).first();
 
-	if (!file) return c.text('File not found.', 404);
+	if (!file) {
+		const html =
+			sharedHead
+				.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+			notFoundPage
+				.replace('{{original_filename}}', 'Unknown File');
+		return c.html(html);
+	}
 
 	// 2. Check Expiration
 	if (file.expires_at && Date.now() / 1000 > (file.expires_at as number)) {
@@ -427,6 +436,32 @@ app.get('/api/user-info', async (c) => {
 	}
 
 	return c.json({ success: true, user });
+});
+
+// Update the current user's name and email
+app.post('/api/update-profile', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!token) return c.json({ error: 'Unauthorized' }, 401);
+
+	const user = await c.env.DB.prepare(
+		'SELECT token FROM access_tokens WHERE token = ? AND is_active = 1'
+	).bind(token).first();
+	if (!user) return c.json({ error: 'Invalid or inactive token' }, 401);
+
+	const body = await c.req.json();
+	const name = (body.user_name as string | undefined)?.trim();
+	const email = (body.user_email as string | undefined)?.trim() || null;
+
+	if (!name) return c.json({ error: 'Name is required' }, 400);
+	if (name.length > 100) return c.json({ error: 'Name is too long' }, 400);
+	if (email && email.length > 200) return c.json({ error: 'Email is too long' }, 400);
+
+	await c.env.DB.prepare(
+		'UPDATE access_tokens SET user_name = ?, user_email = ? WHERE token = ?'
+	).bind(name, email, token).run();
+
+	return c.json({ success: true, user_name: name, user_email: email });
 });
 
 // Sender: extend a file's expiry by 3 days from today

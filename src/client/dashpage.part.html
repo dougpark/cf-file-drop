@@ -16,7 +16,7 @@
             </button>
             <div class="nav-dropdown" id="userMenu">
                 <a id="admin-menu-link" href="/admin" class="nav-dropdown-item hidden">⚙️ Admin Panel</a>
-                <a href="/profile" class="nav-dropdown-item">👤 Profile</a>
+                <a href="#" class="nav-dropdown-item" onclick="openProfileModal();return false;">👤 Profile</a>
                 <button class="nav-dropdown-item nav-dropdown-item-danger" onclick="logOut()">🚪 Log Out</button>
             </div>
         </div>
@@ -82,6 +82,35 @@
 
     </div><!-- end page-content -->
 
+    <!-- Profile modal -->
+    <div id="profile-overlay" class="modal-overlay" onclick="if(event.target===this) closeProfileModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-header-info">
+                    <div class="modal-section-title">Your Profile</div>
+                    <div class="modal-meta">Update your name and email address.</div>
+                </div>
+                <button class="modal-close-btn" onclick="closeProfileModal()">✕ Close</button>
+            </div>
+            <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <label style="font-size:0.8em;color:#888;">Name</label>
+                    <input id="profile-name" type="text" maxlength="100"
+                        style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:6px;border:1px solid #444;background:#111;color:white;font-size:0.9em;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <label style="font-size:0.8em;color:#888;">Email <span style="color:#555;">(optional)</span></label>
+                    <input id="profile-email" type="email" maxlength="200"
+                        style="width:100%;box-sizing:border-box;padding:9px 10px;border-radius:6px;border:1px solid #444;background:#111;color:white;font-size:0.9em;">
+                </div>
+                <div id="profile-error" style="display:none;color:#f44336;font-size:0.82em;"></div>
+                <button id="profile-save-btn" onclick="saveProfile()"
+                    style="padding:9px 16px;border-radius:6px;border:none;background:#0070f3;color:white;cursor:pointer;font-size:0.9em;font-weight:600;align-self:flex-start;">Save
+                    Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Download activity modal -->
     <div id="activity-overlay" class="modal-overlay" onclick="if(event.target===this) closeActivityModal()">
         <div class="modal">
@@ -131,6 +160,7 @@
             if (data.success) {
                 localStorage.setItem('d11_token', token);
                 document.cookie = `d11_token=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Strict`;
+                currentUser = data.user;
                 senderName = data.user.user_name;
                 document.querySelector('.nav-title').textContent = `${senderName}'s File Drop`;
                 document.getElementById('authorized').classList.remove('hidden');
@@ -336,6 +366,67 @@
             }
         } catch { notify('Failed to extend expiry', 'error'); }
         btn.disabled = false;
+    }
+
+    // ── Profile modal ──────────────────────────────────────────
+    let currentUser = null;
+
+    function openProfileModal() {
+        document.getElementById('userMenu').classList.remove('open');
+        document.getElementById('profile-name').value = currentUser?.user_name || '';
+        document.getElementById('profile-email').value = currentUser?.user_email || '';
+        document.getElementById('profile-error').style.display = 'none';
+        document.getElementById('profile-overlay').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        document.getElementById('profile-name').focus();
+    }
+
+    function closeProfileModal() {
+        document.getElementById('profile-overlay').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    async function saveProfile() {
+        const name = document.getElementById('profile-name').value.trim();
+        const email = document.getElementById('profile-email').value.trim();
+        const errEl = document.getElementById('profile-error');
+        errEl.style.display = 'none';
+
+        if (!name) {
+            errEl.textContent = 'Name is required.';
+            errEl.style.display = '';
+            return;
+        }
+
+        const btn = document.getElementById('profile-save-btn');
+        btn.disabled = true;
+        btn.textContent = 'Saving…';
+
+        try {
+            const res = await fetch('/api/update-profile', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_name: name, user_email: email || null })
+            });
+            const data = await res.json();
+            if (data.success) {
+                currentUser.user_name = data.user_name;
+                currentUser.user_email = data.user_email;
+                senderName = data.user_name;
+                document.querySelector('.nav-title').textContent = `${senderName}'s File Drop`;
+                closeProfileModal();
+                notify('Profile updated', 'success');
+            } else {
+                errEl.textContent = data.error || 'Failed to save. Please try again.';
+                errEl.style.display = '';
+            }
+        } catch {
+            errEl.textContent = 'Network error. Please try again.';
+            errEl.style.display = '';
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
     }
 
     function toggleUserMenu() {
