@@ -43,15 +43,19 @@ const MAX_UPLOADS_PER_DAY = 50;               // per access token
 
 
 
-//The Default Endpoint - public
+//The Default Endpoint - redirect to /dash if token cookie present, else show welcome
 app.get('/', (c) => {
+	const cookie = c.req.header('Cookie') ?? '';
+	const match = cookie.match(/(?:^|;\s*)d11_token=([^;]+)/);
+	if (match) {
+		return c.redirect(`/dash?t=${match[1]}`, 302);
+	}
 	const html =
 		sharedHead
 			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
 		welcomePage
 
 	return c.html(html);
-
 })
 
 // dashboard 

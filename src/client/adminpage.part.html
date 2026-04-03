@@ -23,25 +23,25 @@
     <div id="toast-container"></div>
 
     <!-- Top Nav Bar -->
-    <div
-        style="position: sticky; top: 0; z-index: 100; background: #111; border-bottom: 1px solid #333; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.4em;">📂</span>
-            <span style="color: white; font-weight: 700; font-size: 1em; letter-spacing: 0.5px;">File Drop</span>
+    <nav class="top-nav">
+        <div style="display:flex;gap:8px;align-items:center;">
+            <a href="/" class="btn btn-secondary" style="font-size:0.8em;padding:5px 12px;text-decoration:none;">←
+                Back</a>
+            <div class="top-nav-brand">
+                <span class="nav-icon">📂</span>
+                <span class="nav-title">File Drop</span>
+                <span class="badge badge-admin" style="margin-left:4px;">ADMIN</span>
+            </div>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-            <span
-                style="font-size: 0.7em; padding: 3px 10px; border-radius: 12px; background: #1a2a4a; color: #64b5f6; font-weight: 600; letter-spacing: 0.5px;">ADMIN</span>
-            <button id="filter-toggle-btn" onclick="toggleFilter()"
-                style="background: none; border: 1px solid #444; color: #aaa; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-size: 0.75em; display: flex; align-items: center; gap: 5px; line-height: 1;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.75-7.39A1 1 0 0 0 18.95 4H5.04a1 1 0 0 0-.79 1.61z" />
-                </svg>
-                Filter
-            </button>
-        </div>
-    </div>
+        <button id="filter-toggle-btn" onclick="toggleFilter()"
+            style="background: none; border: 1px solid #444; color: #aaa; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-size: 0.75em; display: flex; align-items: center; gap: 5px; line-height: 1;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.75-7.39A1 1 0 0 0 18.95 4H5.04a1 1 0 0 0-.79 1.61z" />
+            </svg>
+            Filter
+        </button>
+    </nav>
 
     <!-- Unauthorized state (shown when no valid admin token is present) -->
     <div id="admin-unauth-wrapper" style="display:none; max-width:600px; margin:24px auto; padding:0 16px;">

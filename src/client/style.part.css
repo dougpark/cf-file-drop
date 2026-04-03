@@ -59,23 +59,31 @@ body {
       border-radius: 20px;
     }
 
+    @keyframes dropzone-pulse {
+      0%, 100% { box-shadow: 0 0 0px rgba(96, 165, 250, 0); border-color: #3a3a3a; }
+      50%       { box-shadow: 0 0 14px rgba(96, 165, 250, 0.35); border-color: rgba(96, 165, 250, 0.5); }
+    }
+
     .drop-zone {
-      border: 2px dashed #444;
+      border: 2px dashed #3a3a3a;
       padding: 32px 16px;
       border-radius: 10px;
       width: 100%;
       text-align: center;
       cursor: pointer;
       transition: 0.2s;
-      background: #111;
+      background: #2a2a2a;
       color: #888;
       font-size: 0.9em;
+      animation: dropzone-pulse 3s ease-in-out infinite;
     }
 
     /* Visual feedback for Safari Drag & Drop */
     .drop-zone.dragover {
-      border-color: #007AFF;
-      background: #1a1a2e;
+      animation: none;
+      border-color: #60a5fa;
+      background: #1a2035;
+      box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
       transform: scale(1.02);
     }
 
@@ -87,7 +95,6 @@ body {
       list-style: none;
       padding: 0;
       width: 100%;
-      max-width: 400px;
     }
 
     .file-item {
@@ -470,13 +477,15 @@ body {
     gap: 8px;
 }
 .recent-item {
-    background: #111;
-    border: 1px solid #2a2a2a;
+    background: #252525;
+    border: 1px solid #2d2d2d;
     border-radius: 8px;
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
 }
 .recent-item-top {
     display: flex;
@@ -507,6 +516,41 @@ body {
 /* --- Button: teal tint (+3 Downloads) --- */
 .btn-teal         { background: #1a2a1a; color: #34d399; border: 1px solid #1a4a2a; }
 .btn-teal:hover   { background: #1e3a1e; }
+
+/* --- Button: more options (⋯) --- */
+.btn-more         { background: #2a2a2a; color: #888; border: 1px solid #3a3a3a; font-size: 1em; letter-spacing: 1px; }
+.btn-more:hover   { background: #333; color: #ccc; }
+
+/* --- Per-item more dropdown --- */
+.item-more-menu {
+    position: relative;
+}
+.item-more-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 4px);
+    background: #1e1e1e;
+    border: 1px solid #2d2d2d;
+    border-radius: 8px;
+    min-width: 140px;
+    z-index: 150;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+}
+.item-more-menu.open .item-more-dropdown { display: flex; flex-direction: column; }
+.item-more-option {
+    background: none;
+    border: none;
+    padding: 9px 14px;
+    font-size: 0.85em;
+    color: #aaa;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: 100%;
+}
+.item-more-option:hover { background: #272727; color: white; }
 
 /* --- Button: green activity view (📊) --- */
 .btn-activity       { background: #1a2a1a; color: #4caf50; border: 1px solid #2a4a2a; }
@@ -552,6 +596,14 @@ body {
     white-space: nowrap;
 }
 .modal-meta  { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.modal-section-title {
+    font-size: 0.7em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #60a5fa;
+    margin-bottom: 4px;
+}
 .modal-hint  { font-size: 0.72em; color: #444; margin-top: 4px; }
 .modal-close-btn {
     background: none;

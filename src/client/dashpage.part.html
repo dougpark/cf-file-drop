@@ -86,9 +86,9 @@
         <div class="modal">
             <div class="modal-header">
                 <div class="modal-header-info">
+                    <div class="modal-section-title">Download Activity</div>
                     <div id="activity-title" class="modal-title"></div>
                     <div id="activity-meta" class="modal-meta"></div>
-                    <div class="modal-hint">Download history — visible only to you</div>
                 </div>
                 <button class="modal-close-btn" onclick="closeActivityModal()">✕ Close</button>
             </div>
@@ -129,6 +129,7 @@
         }).then(res => res.json()).then(data => {
             if (data.success) {
                 localStorage.setItem('d11_token', token);
+                document.cookie = `d11_token=${encodeURIComponent(token)}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Strict`;
                 senderName = data.user.user_name;
                 document.querySelector('.nav-title').textContent = `${senderName}'s File Drop`;
                 document.getElementById('authorized').classList.remove('hidden');
@@ -139,6 +140,7 @@
                 loadRecent();
             } else {
                 localStorage.removeItem('d11_token');
+                document.cookie = 'd11_token=; path=/; max-age=0; SameSite=Strict';
                 document.getElementById('unauthorized').classList.remove('hidden');
                 notify('Your session has expired. Please use a new join link.', 'error');
             }
@@ -241,9 +243,14 @@
                         <div class="recent-item-actions">
                             <button class="btn copy-btn" onclick="copyToClipboard('${fullUrl}', this)">Copy Link</button>
                             <a href="${fullUrl}" class="btn download-btn" title="Open share page">↗</a>
-                            <button class="btn btn-activity" onclick="openActivityModal('${f.slug}', '${f.original_filename.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${f.uploaded_at}, ${f.file_size_bytes})" title="View download activity">📊</button>
-                            <button class="btn btn-purple" onclick="extendExpiry('${f.slug}', this)" title="Add 3 days to expiry">+3 Days</button>
-                            <button class="btn btn-teal" onclick="extendDownloads('${f.slug}', this)" title="Add 3 more downloads">+3 Downloads</button>
+                            <button class="btn btn-activity" onclick="openActivityModal('${f.slug}', '${f.original_filename.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${f.uploaded_at}, ${f.file_size_bytes})" title="View download activity"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>Activity</button>
+                            <div class="item-more-menu">
+                                <button class="btn btn-more" onclick="toggleMoreMenu(this)" title="More options">⋯</button>
+                                <div class="item-more-dropdown">
+                                    <button class="item-more-option" onclick="extendExpiry('${f.slug}', this); closeMoreMenu(this)">+3 Days</button>
+                                    <button class="item-more-option" onclick="extendDownloads('${f.slug}', this); closeMoreMenu(this)">+3 Downloads</button>
+                                </div>
+                            </div>
                         </div>
                     </li>`;
             }).join('');
@@ -332,9 +339,24 @@
     function toggleUserMenu() {
         document.getElementById('userMenu').classList.toggle('open');
     }
+
+    function toggleMoreMenu(btn) {
+        const menu = btn.closest('.item-more-menu');
+        const isOpen = menu.classList.contains('open');
+        document.querySelectorAll('.item-more-menu.open').forEach(m => m.classList.remove('open'));
+        if (!isOpen) menu.classList.add('open');
+    }
+
+    function closeMoreMenu(el) {
+        el.closest('.item-more-menu').classList.remove('open');
+    }
+
     document.addEventListener('click', function (e) {
         if (!document.getElementById('userMenuBtn').contains(e.target)) {
             document.getElementById('userMenu').classList.remove('open');
+        }
+        if (!e.target.closest('.item-more-menu')) {
+            document.querySelectorAll('.item-more-menu.open').forEach(m => m.classList.remove('open'));
         }
     });
 
