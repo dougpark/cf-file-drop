@@ -246,6 +246,8 @@ body {
     transition: background 0.15s;
 }
 .nav-dropdown-item:hover { background: #272727; color: white; }
+.nav-dropdown-item-danger { background: none; border: none; width: 100%; text-align: left; cursor: pointer; color: #f87171; }
+.nav-dropdown-item-danger:hover { background: #2a1010; color: #fca5a5; }
 
 /* --- Centred page header (title + subtitle below nav) --- */
 .page-header {

@@ -17,6 +17,7 @@
             <div class="nav-dropdown" id="userMenu">
                 <a id="admin-menu-link" href="/admin" class="nav-dropdown-item hidden">⚙️ Admin Panel</a>
                 <a href="/profile" class="nav-dropdown-item">👤 Profile</a>
+                <button class="nav-dropdown-item nav-dropdown-item-danger" onclick="logOut()">🚪 Log Out</button>
             </div>
         </div>
     </nav>
@@ -339,6 +340,13 @@
 
     function toggleUserMenu() {
         document.getElementById('userMenu').classList.toggle('open');
+    }
+
+    function logOut() {
+        localStorage.removeItem('d11_token');
+        localStorage.removeItem('d11_admin_token');
+        document.cookie = 'd11_token=; path=/; max-age=0; SameSite=Strict';
+        window.location.href = '/';
     }
 
     function toggleMoreMenu(btn) {
