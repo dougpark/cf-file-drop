@@ -252,8 +252,7 @@
                     <label style="display: flex; align-items: center; gap: 5px; color: #aaa; font-size: 0.85em; cursor: pointer;">
                         <input type="checkbox" ${t.is_admin ? 'checked' : ''} onchange="toggleAdmin('${t.token}', this.checked)"> Admin
                     </label>
-                    <button onclick="disableToken('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #555; color: white; cursor: pointer; font-size: 0.85em;">Disable</button>
-                    <button onclick="enableToken('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Enable</button>
+                    <button onclick="${t.is_active ? 'disableToken' : 'enableToken'}('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: ${t.is_active ? '#3a3a3a' : '#0070f3'}; color: white; cursor: pointer; font-size: 0.85em;">${t.is_active ? 'Disable' : 'Enable'}</button>
                     <button onclick="copyJoinLink('${t.token}')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #333; color: #64b5f6; cursor: pointer; font-size: 0.85em;">📋 Copy Link</button>
                     <button onclick="openFileList('${t.token}', '${t.user_name.replace(/'/g, "\\'")}')"
                         style="padding: 6px 12px; border-radius: 6px; border: none; background: #1a2a1a; color: #4caf50; cursor: pointer; font-size: 0.85em;">📁 Files &amp; Audit</button>
