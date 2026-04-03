@@ -551,6 +551,8 @@ body {
     width: 100%;
 }
 .item-more-option:hover { background: #272727; color: white; }
+.item-more-option-danger { color: #f87171; }
+.item-more-option-danger:hover { background: #2a1a1a; color: #f87171; }
 
 /* --- Button: green activity view (📊) --- */
 .btn-activity       { background: #1a2a1a; color: #4caf50; border: 1px solid #2a4a2a; }

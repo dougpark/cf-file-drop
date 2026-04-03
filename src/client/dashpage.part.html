@@ -233,7 +233,7 @@
                 const dlCount = f.download_count ?? 0;
                 const dlMax = f.max_downloads ?? 3;
                 return `
-                    <li class="recent-item">
+                    <li id="item-${f.slug}" class="recent-item">
                         <div class="recent-item-top">
                             <div class="recent-item-info">
                                 <div class="recent-item-name">${f.original_filename}</div>
@@ -243,12 +243,13 @@
                         <div class="recent-item-actions">
                             <button class="btn copy-btn" onclick="copyToClipboard('${fullUrl}', this)">Copy Link</button>
                             <a href="${fullUrl}" class="btn download-btn" title="Open share page">↗</a>
-                            <button class="btn btn-activity" onclick="openActivityModal('${f.slug}', '${f.original_filename.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${f.uploaded_at}, ${f.file_size_bytes})" title="View download activity"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>Activity</button>
+                            <button class="btn btn-activity" onclick="openActivityModal('${f.slug}', '${f.original_filename.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', ${f.uploaded_at}, ${f.file_size_bytes})" title="View download activity"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Activity</button>
                             <div class="item-more-menu">
                                 <button class="btn btn-more" onclick="toggleMoreMenu(this)" title="More options">⋯</button>
                                 <div class="item-more-dropdown">
                                     <button class="item-more-option" onclick="extendExpiry('${f.slug}', this); closeMoreMenu(this)">+3 Days</button>
                                     <button class="item-more-option" onclick="extendDownloads('${f.slug}', this); closeMoreMenu(this)">+3 Downloads</button>
+                                    <button class="item-more-option item-more-option-danger" onclick="deleteFile('${f.slug}', this)">Delete</button>
                                 </div>
                             </div>
                         </div>
@@ -349,6 +350,27 @@
 
     function closeMoreMenu(el) {
         el.closest('.item-more-menu').classList.remove('open');
+    }
+
+    async function deleteFile(slug, btn) {
+        if (!confirm('Delete this file? The share link will stop working immediately.')) return;
+        closeMoreMenu(btn);
+        try {
+            const res = await fetch('/api/delete-file', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slug })
+            });
+            const data = await res.json();
+            if (data.success) {
+                const item = document.getElementById(`item-${slug}`);
+                if (item) item.remove();
+                notify('File deleted', 'success');
+                loadStats(token);
+            } else {
+                notify('Failed to delete file', 'error');
+            }
+        } catch { notify('Failed to delete file', 'error'); }
     }
 
     document.addEventListener('click', function (e) {

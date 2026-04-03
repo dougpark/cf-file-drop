@@ -19,6 +19,8 @@ import adminPage from './client/adminpage.part.html'
 // @ts-ignore
 import maxDownload from './client/maxdownload.part.html'
 // @ts-ignore
+import expiredPage from './client/expired.part.html'
+// @ts-ignore
 import download from './client/download.part.html'
 
 
@@ -191,7 +193,13 @@ app.get('/f/:slug', async (c) => {
 
 	// 2. Check Expiration
 	if (file.expires_at && Date.now() / 1000 > (file.expires_at as number)) {
-		return c.text('This link has expired.', 410);
+		// build the expired page from parts
+		const html =
+			sharedHead
+				.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+			expiredPage
+				.replace('{{original_filename}}', `${file.original_filename}`);
+		return c.html(html);
 	}
 
 	// 3. Check Single-Use
@@ -324,14 +332,16 @@ app.get('/api/recent', async (c) => {
 		return c.json({ error: 'Unauthorized' }, 401);
 	}
 
+	const now = Math.floor(Date.now() / 1000);
 	const { results } = await c.env.DB.prepare(`
     SELECT slug, original_filename, uploaded_at, file_size_bytes, expires_at, download_count,
            COALESCE(max_downloads, 3) AS max_downloads
     FROM file_log 
     WHERE deleted_at IS NULL AND created_by_token = ?
+      AND (expires_at IS NULL OR expires_at > ?)
     ORDER BY uploaded_at DESC 
     LIMIT 50
-  `).bind(recentToken).all();
+  `).bind(recentToken, now).all();
 
 	return c.json(results);
 });
@@ -405,6 +415,33 @@ app.post('/api/extend-expiry', async (c) => {
 	).bind(newExpiry, slug).run();
 
 	return c.json({ success: true, expires_at: newExpiry });
+});
+
+// Sender: soft-delete a file (sets deleted_at, receiver gets 404)
+app.post('/api/delete-file', async (c) => {
+	const authHeader = c.req.header('Authorization');
+	const callerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+	if (!callerToken) return c.json({ error: 'Unauthorized' }, 401);
+
+	const callerRecord = await c.env.DB.prepare(
+		'SELECT token FROM access_tokens WHERE token = ? AND is_active = 1'
+	).bind(callerToken).first();
+	if (!callerRecord) return c.json({ error: 'Unauthorized' }, 401);
+
+	const { slug } = await c.req.json();
+	if (!slug) return c.json({ error: 'slug required' }, 400);
+
+	const owner = await c.env.DB.prepare(
+		'SELECT slug FROM file_log WHERE slug = ? AND created_by_token = ? AND deleted_at IS NULL'
+	).bind(slug, callerToken).first();
+	if (!owner) return c.json({ error: 'Not found' }, 404);
+
+	const now = Math.floor(Date.now() / 1000);
+	await c.env.DB.prepare(
+		'UPDATE file_log SET deleted_at = ? WHERE slug = ?'
+	).bind(now, slug).run();
+
+	return c.json({ success: true });
 });
 
 // Sender: add 3 more downloads to a file's limit
