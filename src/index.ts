@@ -11,7 +11,7 @@ import sharedHead from './client/head.part.html'
 // @ts-ignore
 import sharedStyle from './client/style.part.css'
 // @ts-ignore
-import sendPage from './client/sendPage.part.html'
+import dashPage from './client/dashPage.part.html'
 // @ts-ignore
 import welcomePage from './client/welcome.part.html'
 // @ts-ignore
@@ -41,6 +41,8 @@ const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB hard cap per file
 const MAX_UPLOADS_PER_HOUR = 10;               // per access token
 const MAX_UPLOADS_PER_DAY = 50;               // per access token
 
+
+
 //The Default Endpoint - public
 app.get('/', (c) => {
 	const html =
@@ -52,12 +54,23 @@ app.get('/', (c) => {
 
 })
 
-// join page - public, but with a unique token in the URL to prevent random people from stumbling on it. This is where you would share the "join" link with your friends or family so they can upload files without needing the admin password. The token can be a simple random string that you generate and share privately.
+// dashboard 
+app.get('/dash', (c) => {
+	const html =
+		sharedHead
+			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
+		dashPage
+
+	return c.html(html);
+
+})
+
+// send page - deprecated
 app.get('/send', (c) => {
 	const html =
 		sharedHead
 			.replace('{{shared_style}}', `<style>${sharedStyle}</style>`) +
-		sendPage
+		dashPage
 
 	return c.html(html);
 
