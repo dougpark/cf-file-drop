@@ -85,8 +85,8 @@
             style="background:#1e1e1e;border:1px solid #4a1a1a;border-radius:10px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;">
             <span style="font-size:2em;">🔒</span>
             <span style="font-size:1.1em;font-weight:bold;color:white;">Admin Access Required</span>
-            <p style="color:#888;font-size:0.85em;margin:0;">Please open the admin panel from your send link:<br><code
-                    style="color:#64b5f6;">/admin?t=YOUR_ADMIN_TOKEN</code></p>
+            <p style="color:#888;font-size:0.85em;margin:0;">Please open the admin panel with your access
+                token:<br><code style="color:#64b5f6;">/admin?t=YOUR_ADMIN_TOKEN</code></p>
         </div>
     </div>
 
@@ -96,7 +96,7 @@
         <!-- Tab Bar -->
         <div class="admin-tab-bar">
             <button id="tab-btn-tokens" class="admin-tab admin-tab-active" onclick="switchTab('tokens')">Manage
-                Tokens</button>
+                Users</button>
             <button id="tab-btn-requests" class="admin-tab" onclick="switchTab('requests')">
                 Access Requests
                 <span id="req-badge"
@@ -104,7 +104,7 @@
             </button>
         </div>
 
-        <!-- ── Tab: Manage Tokens (default) ── -->
+        <!-- ── Tab: Manage Users (default) ── -->
         <div id="tab-tokens">
 
             <!-- Filter Panel -->
@@ -137,7 +137,7 @@
 
             <!-- Page Header -->
             <div style="padding: 24px 16px 8px 16px; max-width: 600px; margin: 0 auto;">
-                <h1 style="margin: 0 0 4px 0; font-size: 1.5em; color: white; font-weight: 700;">Access Tokens</h1>
+                <h1 style="margin: 0 0 4px 0; font-size: 1.5em; color: white; font-weight: 700;">Authorization</h1>
                 <p style="margin: 0; color: #888; font-size: 0.85em;">Manage who can upload files and their permissions.
                 </p>
             </div>
@@ -147,7 +147,7 @@
 
                 <div id="create-new-user"
                     style="background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
-                    <span style="font-size: 1.1em; font-weight: bold; color: white;">New Access Token</span>
+                    <span style="font-size: 1.1em; font-weight: bold; color: white;">New User</span>
                     <div
                         style="display: flex; flex-direction: column; gap: 8px; padding-top: 4px; border-top: 1px solid #333;">
                         <input type="text" id="newUserName" placeholder="User Name"
@@ -160,14 +160,14 @@
                                 <input type="checkbox" id="newUserIsAdmin"> Admin
                             </label>
                             <button id="createTokenBtn"
-                                style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Create
-                                Token</button>
+                                style="padding: 6px 12px; border-radius: 6px; border: none; background: #0070f3; color: white; cursor: pointer; font-size: 0.85em;">Add
+                                User</button>
                         </div>
                     </div>
                 </div>
 
                 <div id="token-list">
-                    Loading token list content...
+                    Loading user list content...
                 </div>
 
             </div><!-- end shared container -->
