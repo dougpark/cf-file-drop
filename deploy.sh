@@ -20,6 +20,8 @@ echo "Starting Cloudflare deployment..."
 # 1. Run the deploy, show it on the screen, AND capture it to a temporary file
  bunx wrangler deploy --tag " $(git describe --tags --abbrev=0)" --message "$(git log -1 --pretty=%B)" 2>&1 | tee "$TEMP_DEPLOY"
 
+ bunx bunx wrangler deployments status 2>&1 | tee -a "$TEMP_DEPLOY"
+
 # 2. Build the new "Top" of the history file (Header)
 echo "========================================" > "$TEMP_HISTORY"
 echo "DEPLOY TIME : $TIMESTAMP" >> "$TEMP_HISTORY"
