@@ -15,10 +15,20 @@ TEMP_DEPLOY="temp_deploy.log"
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 DEPLOY_MSG=${1:-"Standard deployment"}
 
+# --- NEW: AUTO-VERSIONING LOGIC ---
+# Get current, default to v1.0.0 if none found
+CURRENT_TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "v1.0.0")
+# Increment the last digit
+NEW_TAG=$(echo $CURRENT_TAG | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
+
+echo "Staging version $NEW_TAG..."
+git tag "$NEW_TAG"
+# ----------------------------------
+
 echo "Starting Cloudflare deployment..."
 
 # 1. Run the deploy, show it on the screen, AND capture it to a temporary file
- bunx wrangler deploy --tag " $(git describe --tags --abbrev=0)" --message "$(git log -1 --pretty=%B)" 2>&1 | tee "$TEMP_DEPLOY"
+ bunx wrangler deploy --tag "$NEW_TAG" --message "$(git log -1 --pretty=%B)" 2>&1 | tee "$TEMP_DEPLOY"
 
  bunx bunx wrangler deployments status 2>&1 | tee -a "$TEMP_DEPLOY"
 
