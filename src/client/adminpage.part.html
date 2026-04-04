@@ -568,7 +568,7 @@
             const result = await res.json();
             if (result.success) {
                 const joinUrl = `${window.location.origin}${result.join_url}`;
-                navigator.clipboard.writeText(joinUrl).catch(() => prompt('Copy this join link:', joinUrl));
+                navigator.clipboard.writeText(joinUrl).catch(() => { });
                 notify('Request approved — join link copied to clipboard', 'success', 6000);
                 loadAccessRequests();
                 loadTokens();

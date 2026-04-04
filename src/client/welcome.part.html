@@ -89,6 +89,11 @@
                 errEl.style.display = '';
                 return;
             }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errEl.textContent = 'Please enter a valid email address.';
+                errEl.style.display = '';
+                return;
+            }
 
             const btn = document.getElementById('req-submit-btn');
             btn.disabled = true;
